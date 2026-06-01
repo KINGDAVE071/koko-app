@@ -1,0 +1,68 @@
+/* Polices Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme inline {
+  /* Couleurs KOKO */
+  --color-koko-orange: #E67E22;
+  --color-koko-orange-light: #F39C12;
+  --color-koko-orange-dark: #D35400;
+  --color-koko-blue: #2C3E50;
+  --color-koko-blue-light: #34495E;
+  --color-koko-cream: #FFF9F0;
+  --color-koko-cream-dark: #1A1A2E;
+  --color-koko-text: #2C3E50;
+  --color-koko-text-dark: #ECF0F1;
+
+  /* Polices */
+  --font-sans: 'Nunito', sans-serif;
+  --font-arabic: 'Cairo', sans-serif;
+  --font-chinese: 'Noto Sans SC', sans-serif;
+  --font-japanese: 'Noto Sans JP', sans-serif;
+
+  /* Ombres */
+  --shadow-koko: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-koko-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+
+  /* Bordures arrondies */
+  --radius-koko: 12px;
+  --radius-koko-lg: 16px;
+}
+
+/* Styles de base */
+body {
+  font-family: var(--font-sans);
+}
+
+/* Support des langues */
+[lang="ar"] body,
+[lang="ar"] * {
+  font-family: var(--font-arabic), sans-serif;
+}
+
+[lang="zh"] body,
+[lang="zh"] * {
+  font-family: var(--font-chinese), sans-serif;
+}
+
+[lang="ja"] body,
+[lang="ja"] * {
+  font-family: var(--font-japanese), sans-serif;
+}
+
+/* Scrollbar douce */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E67E22;
+  border-radius: 3px;
+}
