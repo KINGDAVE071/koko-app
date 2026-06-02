@@ -16,11 +16,9 @@ export default function LoginPage() {
   const router = useRouter();
   const { t, lang } = useLanguage();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleClick = async () => {
     setError('');
 
-    // Validation manuelle
     if (!email.trim()) {
       setError(t('login.email') + ' est requis.');
       return;
@@ -43,7 +41,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full bg-white dark:bg-koko-blue rounded-2xl p-8 shadow-koko-lg">
         <h1 className="text-3xl font-bold text-center mb-6">🌅 {t('app.name')}</h1>
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-        <form onSubmit={handleSubmit} noValidate className="space-y-4">
+        <div className="space-y-4">
           <input
             type="email"
             placeholder={t('login.email')}
@@ -58,10 +56,10 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
-          <button type="submit" className="w-full py-3 bg-koko-orange text-white font-bold rounded-xl hover:bg-koko-orange-dark transition">
+          <button onClick={handleClick} className="w-full py-3 bg-koko-orange text-white font-bold rounded-xl hover:bg-koko-orange-dark transition">
             {t('login.submit')}
           </button>
-        </form>
+        </div>
         <div className="mt-4">
           <button
             onClick={() => alert('Connexion Google bientôt disponible')}

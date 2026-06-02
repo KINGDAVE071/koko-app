@@ -17,8 +17,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const { t, lang } = useLanguage();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleClick = async () => {
     setError('');
 
     if (!name.trim()) {
@@ -54,7 +53,7 @@ export default function RegisterPage() {
             {t('register.success') || 'Compte créé avec succès ! Redirection...'}
           </div>
         ) : (
-          <form onSubmit={handleSubmit} noValidate className="space-y-4">
+          <div className="space-y-4">
             <input
               type="text"
               placeholder={t('register.name')}
@@ -76,10 +75,10 @@ export default function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             />
-            <button type="submit" className="w-full py-3 bg-koko-orange text-white font-bold rounded-xl hover:bg-koko-orange-dark transition">
+            <button onClick={handleClick} className="w-full py-3 bg-koko-orange text-white font-bold rounded-xl hover:bg-koko-orange-dark transition">
               {t('register.submit')}
             </button>
-          </form>
+          </div>
         )}
         <p className="text-center mt-4 text-sm text-gray-500 dark:text-gray-400">
           {t('register.hasAccount')}{' '}
