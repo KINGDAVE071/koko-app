@@ -8,9 +8,9 @@ import { useLanguage } from '@/i18n/LanguageContext';
 import { toast } from 'sonner';
 
 export default function RegisterPage() {
-  const [userName, setUserName] = useState('');
-  const [userEmail, setUserEmail] = useState('');
-  const [userPassword, setUserPassword] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const { register } = useAuth();
@@ -20,8 +20,23 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validation manuelle
+    if (!name.trim()) {
+      setError((t('register.name') || 'Nom') + ' est requis.');
+      return;
+    }
+    if (!email.trim()) {
+      setError((t('register.email') || 'Email') + ' est requis.');
+      return;
+    }
+    if (!password) {
+      setError((t('register.password') || 'Mot de passe') + ' est requis.');
+      return;
+    }
+
     try {
-      await register(userEmail, userPassword, userName);
+      await register(email, password, name);
       setSuccess(true);
       toast.success(t('register.success') || 'Compte créé avec succès !');
       setTimeout(() => router.push('/login'), 2000);
@@ -40,30 +55,27 @@ export default function RegisterPage() {
             {t('register.success') || 'Compte créé avec succès ! Redirection...'}
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} noValidate className="space-y-4">
             <input
               type="text"
               placeholder={t('register.name')}
-              value={userName}
-              onChange={(e) => setUserName(e.target.value)}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-              required
             />
             <input
               type="email"
               placeholder={t('register.email')}
-              value={userEmail}
-              onChange={(e) => setUserEmail(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-              required
             />
             <input
               type="password"
               placeholder={t('register.password') || 'Mot de passe'}
-              value={userPassword}
-              onChange={(e) => setUserPassword(e.target.value)}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-              required
             />
             <button type="submit" className="w-full py-3 bg-koko-orange text-white font-bold rounded-xl hover:bg-koko-orange-dark transition">
               {t('register.submit')}

@@ -9,8 +9,8 @@ import { useLanguage } from '@/i18n/LanguageContext';
 export const dynamic = 'force-dynamic';
 
 export default function LoginPage() {
-  const [userEmail, setUserEmail] = useState('');
-  const [userPassword, setUserPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const { login } = useAuth();
   const router = useRouter();
@@ -19,8 +19,19 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validation manuelle
+    if (!email.trim()) {
+      setError(t('login.email') + ' est requis.');
+      return;
+    }
+    if (!password) {
+      setError((t('login.password') || 'Mot de passe') + ' est requis.');
+      return;
+    }
+
     try {
-      await login(userEmail, userPassword);
+      await login(email, password);
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.error || t('login.error') || 'Erreur de connexion');
@@ -32,22 +43,20 @@ export default function LoginPage() {
       <div className="max-w-md w-full bg-white dark:bg-koko-blue rounded-2xl p-8 shadow-koko-lg">
         <h1 className="text-3xl font-bold text-center mb-6">🌅 {t('app.name')}</h1>
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           <input
             type="email"
             placeholder={t('login.email')}
-            value={userEmail}
-            onChange={(e) => setUserEmail(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-            required
           />
           <input
             type="password"
             placeholder={t('login.password') || 'Mot de passe'}
-            value={userPassword}
-            onChange={(e) => setUserPassword(e.target.value)}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-            required
           />
           <button type="submit" className="w-full py-3 bg-koko-orange text-white font-bold rounded-xl hover:bg-koko-orange-dark transition">
             {t('login.submit')}
