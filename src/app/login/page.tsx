@@ -9,8 +9,8 @@ import { useLanguage } from '@/i18n/LanguageContext';
 export const dynamic = 'force-dynamic';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [userPassword, setUserPassword] = useState('');
   const [error, setError] = useState('');
   const { login } = useAuth();
   const router = useRouter();
@@ -20,7 +20,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     try {
-      await login(email, password);
+      await login(userEmail, userPassword);
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.error || t('login.error') || 'Erreur de connexion');
@@ -36,16 +36,16 @@ export default function LoginPage() {
           <input
             type="email"
             placeholder={t('login.email')}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={userEmail}
+            onChange={(e) => setUserEmail(e.target.value)}
             className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             required
           />
           <input
             type="password"
             placeholder={t('login.password') || 'Mot de passe'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={userPassword}
+            onChange={(e) => setUserPassword(e.target.value)}
             className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             required
           />

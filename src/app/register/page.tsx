@@ -8,9 +8,9 @@ import { useLanguage } from '@/i18n/LanguageContext';
 import { toast } from 'sonner';
 
 export default function RegisterPage() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [userPassword, setUserPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const { register } = useAuth();
@@ -21,7 +21,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
     try {
-      await register(email, password, name);
+      await register(userEmail, userPassword, userName);
       setSuccess(true);
       toast.success(t('register.success') || 'Compte créé avec succès !');
       setTimeout(() => router.push('/login'), 2000);
@@ -44,24 +44,24 @@ export default function RegisterPage() {
             <input
               type="text"
               placeholder={t('register.name')}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               required
             />
             <input
               type="email"
               placeholder={t('register.email')}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={userEmail}
+              onChange={(e) => setUserEmail(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               required
             />
             <input
               type="password"
               placeholder={t('register.password') || 'Mot de passe'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={userPassword}
+              onChange={(e) => setUserPassword(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               required
             />
