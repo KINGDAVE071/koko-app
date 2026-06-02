@@ -3,15 +3,19 @@
   "app.tagline": "Your daily life, simplified",
   "login.title": "Login",
   "login.email": "Email",
-  "login.pin": "PIN (6 digits)",
+  "login.password": "Password",
   "login.submit": "Login",
+  "login.google": "Continue with Google",
+  "login.error": "Login error",
   "login.noAccount": "Don't have an account?",
   "login.registerLink": "Sign up",
   "register.title": "Sign up",
   "register.name": "Full name",
   "register.email": "Email",
-  "register.pin": "PIN (6 digits)",
+  "register.password": "Password (min. 8 characters, one uppercase, one digit, one symbol)",
   "register.submit": "Sign up",
+  "register.success": "Account created successfully!",
+  "register.alreadyExists": "An account with this email already exists.",
   "register.hasAccount": "Already have an account?",
   "register.loginLink": "Login",
   "dashboard.welcome": "Hello, {name} 👋",
@@ -58,5 +62,4 @@
   "business.income": "Income",
   "business.expense": "Expense",
   "business.balance": "Balance"
-  "register.success":"Account created successfully!","register.alreadyExists":"An account with this email already exists.","register.password":"Password (min. 8 characters, one uppercase, one digit, one symbol)","login.password":"Password","login.google":"Continue with Google","login.error":"Login error"
 }

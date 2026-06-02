@@ -3,15 +3,19 @@
   "app.tagline": "Votre quotidien, simplifié",
   "login.title": "Se connecter",
   "login.email": "Email",
-  "login.pin": "PIN (6 chiffres)",
+  "login.password": "Mot de passe",
   "login.submit": "Se connecter",
+  "login.google": "Continuer avec Google",
+  "login.error": "Erreur de connexion",
   "login.noAccount": "Pas encore de compte ?",
   "login.registerLink": "S'inscrire",
   "register.title": "S'inscrire",
   "register.name": "Nom complet",
   "register.email": "Email",
-  "register.pin": "PIN (6 chiffres)",
+  "register.password": "Mot de passe (min. 8 caractères, une majuscule, un chiffre, un symbole)",
   "register.submit": "S'inscrire",
+  "register.success": "Compte créé avec succès !",
+  "register.alreadyExists": "Un compte avec cet email existe déjà.",
   "register.hasAccount": "Déjà un compte ?",
   "register.loginLink": "Se connecter",
   "dashboard.welcome": "Bonjour, {name} 👋",
@@ -58,5 +62,4 @@
   "business.income": "Entrée",
   "business.expense": "Dépense",
   "business.balance": "Solde"
-  "register.success":"Compte créé avec succès !","register.alreadyExists":"Un compte avec cet email existe déjà.","register.password":"Mot de passe (min. 8 caractères, une majuscule, un chiffre, un symbole)","login.password":"Mot de passe","login.google":"Continuer avec Google","login.error":"Erreur de connexion"
 }

@@ -3,15 +3,19 @@
   "app.tagline": "简化您的日常生活",
   "login.title": "登录",
   "login.email": "电子邮件",
-  "login.pin": "PIN码（6位）",
+  "login.password": "密码",
   "login.submit": "登录",
+  "login.google": "使用 Google 登录",
+  "login.error": "登录错误",
   "login.noAccount": "还没有账户？",
   "login.registerLink": "注册",
   "register.title": "注册",
   "register.name": "全名",
   "register.email": "电子邮件",
-  "register.pin": "PIN码（6位）",
+  "register.password": "密码（至少8个字符，一个大写字母，一个数字，一个符号）",
   "register.submit": "注册",
+  "register.success": "账户创建成功！",
+  "register.alreadyExists": "此邮箱已被注册。",
   "register.hasAccount": "已有账户？",
   "register.loginLink": "登录",
   "dashboard.welcome": "您好，{name} 👋",
@@ -58,5 +62,4 @@
   "business.income": "收入",
   "business.expense": "支出",
   "business.balance": "余额"
-  "register.success":"账户创建成功！","register.alreadyExists":"此邮箱已被注册。","register.password":"密码（至少8个字符，一个大写字母，一个数字，一个符号）","login.password":"密码","login.google":"使用 Google 登录","login.error":"登录错误"
 }

@@ -3,15 +3,19 @@
   "app.tagline": "あなたの日常をシンプルに",
   "login.title": "ログイン",
   "login.email": "メールアドレス",
-  "login.pin": "PIN（6桁）",
+  "login.password": "パスワード",
   "login.submit": "ログイン",
+  "login.google": "Googleで続ける",
+  "login.error": "ログインエラー",
   "login.noAccount": "アカウントをお持ちでないですか？",
   "login.registerLink": "登録",
   "register.title": "登録",
   "register.name": "氏名",
   "register.email": "メールアドレス",
-  "register.pin": "PIN（6桁）",
+  "register.password": "パスワード（8文字以上、大文字、数字、記号を含む）",
   "register.submit": "登録",
+  "register.success": "アカウントが作成されました！",
+  "register.alreadyExists": "このメールアドレスは既に使用されています。",
   "register.hasAccount": "すでにアカウントをお持ちですか？",
   "register.loginLink": "ログイン",
   "dashboard.welcome": "こんにちは、{name}さん 👋",
@@ -58,5 +62,4 @@
   "business.income": "収入",
   "business.expense": "支出",
   "business.balance": "残高"
-  "register.success":"アカウントが作成されました！","register.alreadyExists":"このメールアドレスは既に使用されています。","register.password":"パスワード（8文字以上、大文字、数字、記号を含む）","login.password":"パスワード","login.google":"Googleで続ける","login.error":"ログインエラー"
 }
