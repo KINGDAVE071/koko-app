@@ -21,7 +21,6 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
 
-    // Validation manuelle
     if (!name.trim()) {
       setError((t('register.name') || 'Nom') + ' est requis.');
       return;
@@ -55,7 +54,7 @@ export default function RegisterPage() {
             {t('register.success') || 'Compte créé avec succès ! Redirection...'}
           </div>
         ) : (
-          <form onSubmit={handleSubmit} noValidate className="space-y-4">
+          <form onSubmit={handleSubmit} formNoValidate className="space-y-4">
             <input
               type="text"
               placeholder={t('register.name')}
