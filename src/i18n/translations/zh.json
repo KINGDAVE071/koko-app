@@ -58,4 +58,5 @@
   "business.income": "收入",
   "business.expense": "支出",
   "business.balance": "余额"
+  "register.success":"账户创建成功！","register.alreadyExists":"此邮箱已被注册。","register.password":"密码（至少8个字符，一个大写字母，一个数字，一个符号）","login.password":"密码","login.google":"使用 Google 登录","login.error":"登录错误"
 }

@@ -58,4 +58,5 @@
   "business.income": "إيرادات",
   "business.expense": "مصاريف",
   "business.balance": "الرصيد"
+  "register.success":"تم إنشاء الحساب بنجاح!","register.alreadyExists":"هذا البريد الإلكتروني مستخدم بالفعل.","register.password":"كلمة المرور (8 أحرف على الأقل، حرف كبير، رقم، رمز)","login.password":"كلمة المرور","login.google":"المتابعة مع جوجل","login.error":"خطأ في تسجيل الدخول"
 }

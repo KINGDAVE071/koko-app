@@ -58,4 +58,5 @@
   "business.income": "Income",
   "business.expense": "Expense",
   "business.balance": "Balance"
+  "register.success":"Account created successfully!","register.alreadyExists":"An account with this email already exists.","register.password":"Password (min. 8 characters, one uppercase, one digit, one symbol)","login.password":"Password","login.google":"Continue with Google","login.error":"Login error"
 }

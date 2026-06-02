@@ -58,4 +58,5 @@
   "business.income": "収入",
   "business.expense": "支出",
   "business.balance": "残高"
+  "register.success":"アカウントが作成されました！","register.alreadyExists":"このメールアドレスは既に使用されています。","register.password":"パスワード（8文字以上、大文字、数字、記号を含む）","login.password":"パスワード","login.google":"Googleで続ける","login.error":"ログインエラー"
 }

@@ -7,20 +7,27 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-// Validation
+// Schéma de mot de passe fort : 8+ car., au moins une majuscule, une minuscule, un chiffre, un symbole
+const passwordSchema = z.string()
+  .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
+  .regex(/[A-Z]/, 'Le mot de passe doit contenir au moins une majuscule')
+  .regex(/[a-z]/, 'Le mot de passe doit contenir au moins une minuscule')
+  .regex(/[0-9]/, 'Le mot de passe doit contenir au moins un chiffre')
+  .regex(/[@$!%*?&]/, 'Le mot de passe doit contenir au moins un symbole (@$!%*?&)');
+
 const registerSchema = z.object({
   email: z.string().email('Email invalide'),
-  pin: z.string().min(6, 'PIN : 6 chiffres minimum').max(6),
+  password: passwordSchema,
   name: z.string().min(2, 'Nom trop court'),
   language: z.string().optional(),
 });
 
 const loginSchema = z.object({
   email: z.string().email('Email invalide'),
-  pin: z.string().min(6),
+  password: z.string(),
 });
 
-const JWT_SECRET: string = process.env.JWT_SECRET || 'koko_secret_2026_change_me_later';
+const JWT_SECRET: string = process.env.JWT_SECRET || 'koko_production_secret_change_me';
 const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || '7d';
 
 // Inscription
@@ -33,19 +40,14 @@ router.post('/register', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Cet email est déjà utilisé' });
     }
 
-    const pinHash = await bcrypt.hash(data.pin, 12);
+    const passwordHash = await bcrypt.hash(data.password, 12);
     const result = db.prepare(
       'INSERT INTO users (email, pin_hash, name, language) VALUES (?, ?, ?, ?)'
-    ).run(data.email, pinHash, data.name, data.language || 'fr');
+    ).run(data.email, passwordHash, data.name, data.language || 'fr');
 
-    const token = jwt.sign(
-      { id: result.lastInsertRowid as number },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN as any }
-    );
-
+    // On ne connecte plus automatiquement l'utilisateur
     res.status(201).json({
-      token,
+      message: 'Compte créé avec succès',
       user: {
         id: result.lastInsertRowid,
         email: data.email,
@@ -68,16 +70,16 @@ router.post('/login', async (req: Request, res: Response) => {
 
     const user: any = db.prepare('SELECT * FROM users WHERE email = ?').get(data.email);
     if (!user) {
-      return res.status(400).json({ error: 'Email ou PIN incorrect' });
+      return res.status(400).json({ error: 'Email ou mot de passe incorrect' });
     }
 
-    const validPin = await bcrypt.compare(data.pin, user.pin_hash);
-    if (!validPin) {
-      return res.status(400).json({ error: 'Email ou PIN incorrect' });
+    const validPassword = await bcrypt.compare(data.password, user.pin_hash);
+    if (!validPassword) {
+      return res.status(400).json({ error: 'Email ou mot de passe incorrect' });
     }
 
     const token = jwt.sign(
-      { id: user.id as number },
+      { id: user.id },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN as any }
     );
