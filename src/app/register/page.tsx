@@ -23,18 +23,10 @@ export default function RegisterPage() {
     try {
       await register(email, password, name);
       setSuccess(true);
-      toast.success(t('register.success') || 'Compte créé avec succès ! Vous allez être redirigé...');
-      // Rediriger vers la page de connexion après 2 secondes
-      setTimeout(() => {
-        router.push('/login');
-      }, 2000);
+      toast.success(t('register.success') || 'Compte créé avec succès !');
+      setTimeout(() => router.push('/login'), 2000);
     } catch (err: any) {
-      const msg = err.response?.data?.error;
-      if (msg && msg.includes('Email ou nom déjà utilisé')) {
-        setError(t('register.alreadyExists') || 'Un compte avec cet email existe déjà.');
-      } else {
-        setError(msg || t('register.error') || 'Erreur lors de l\'inscription');
-      }
+      setError(err.response?.data?.error || 'Erreur inscription');
     }
   };
 
@@ -45,7 +37,7 @@ export default function RegisterPage() {
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
         {success ? (
           <div className="text-center text-green-600 font-medium">
-            {t('register.success') || 'Compte créé avec succès ! Redirection vers la connexion...'}
+            {t('register.success') || 'Compte créé avec succès ! Redirection...'}
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -67,13 +59,11 @@ export default function RegisterPage() {
             />
             <input
               type="password"
-              placeholder={t('register.password') || 'Mot de passe (min. 8 caractères, une majuscule, un chiffre, un symbole)'}
+              placeholder={t('register.password') || 'Mot de passe'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               required
-              minLength={8}
-              title="Au moins 8 caractères, une majuscule, une minuscule, un chiffre et un symbole"
             />
             <button type="submit" className="w-full py-3 bg-koko-orange text-white font-bold rounded-xl hover:bg-koko-orange-dark transition">
               {t('register.submit')}
