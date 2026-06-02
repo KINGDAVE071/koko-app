@@ -43,7 +43,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full bg-white dark:bg-koko-blue rounded-2xl p-8 shadow-koko-lg">
         <h1 className="text-3xl font-bold text-center mb-6">🌅 {t('app.name')}</h1>
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-        <form onSubmit={handleSubmit} noValidate className="space-y-4">
+        <form onSubmit={handleSubmit} formNoValidate className="space-y-4">
           <input
             type="email"
             placeholder={t('login.email')}
