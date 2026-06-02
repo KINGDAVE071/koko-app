@@ -1,3 +1,4 @@
+// Exclure le dossier backend (build frontend)
 {
   "compilerOptions": {
     "target": "ES2017",
