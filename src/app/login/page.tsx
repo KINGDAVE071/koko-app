@@ -1,4 +1,3 @@
-// Login page v2
 'use client';
 
 import { useState } from 'react';
@@ -6,7 +5,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/i18n/LanguageContext';
-import { signIn } from 'next-auth/react';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,7 +70,7 @@ export default function LoginPage() {
         <p className="text-center mt-4 text-sm text-gray-500 dark:text-gray-400">
           {t('login.noAccount')}{' '}
           <Link href="/register" className="text-koko-orange font-medium">
-            {t('login.registerLink')}
+            {t('register.loginLink')}
           </Link>
         </p>
       </div>
