@@ -33,7 +33,7 @@ router.delete('/users/:id', (req: AuthRequest, res: Response) => {
   const userId = req.params.id;
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
   if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
-  if (userId == req.userId) {
+  if (parseInt(userId) === req.userId) {
     return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte' });
   }
   db.prepare('DELETE FROM users WHERE id = ?').run(userId);
