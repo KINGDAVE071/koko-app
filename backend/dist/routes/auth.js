@@ -10,7 +10,6 @@ const zod_1 = require("zod");
 const database_1 = __importDefault(require("../database"));
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
-// Schéma de mot de passe fort : 8+ car., au moins une majuscule, une minuscule, un chiffre, un symbole
 const passwordSchema = zod_1.z.string()
     .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
     .regex(/[A-Z]/, 'Le mot de passe doit contenir au moins une majuscule')
@@ -38,8 +37,7 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ error: 'Cet email est déjà utilisé' });
         }
         const passwordHash = await bcryptjs_1.default.hash(data.password, 12);
-        const result = database_1.default.prepare('INSERT INTO users (email, pin_hash, name, language) VALUES (?, ?, ?, ?)').run(data.email, passwordHash, data.name, data.language || 'fr');
-        // On ne connecte plus automatiquement l'utilisateur
+        const result = database_1.default.prepare('INSERT INTO users (email, pin_hash, name, language, role) VALUES (?, ?, ?, ?, ?)').run(data.email, passwordHash, data.name, data.language || 'fr', 'user');
         res.status(201).json({
             message: 'Compte créé avec succès',
             user: {
@@ -47,6 +45,7 @@ router.post('/register', async (req, res) => {
                 email: data.email,
                 name: data.name,
                 language: data.language || 'fr',
+                role: 'user',
             },
         });
     }
@@ -61,7 +60,7 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
     try {
         const data = loginSchema.parse(req.body);
-        const user = database_1.default.prepare('SELECT * FROM users WHERE email = ?').get(data.email);
+        const user = database_1.default.prepare('SELECT id, email, pin_hash, name, language, role, created_at FROM users WHERE email = ?').get(data.email);
         if (!user) {
             return res.status(400).json({ error: 'Email ou mot de passe incorrect' });
         }
@@ -69,7 +68,7 @@ router.post('/login', async (req, res) => {
         if (!validPassword) {
             return res.status(400).json({ error: 'Email ou mot de passe incorrect' });
         }
-        const token = jsonwebtoken_1.default.sign({ id: user.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+        const token = jsonwebtoken_1.default.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
         res.json({
             token,
             user: {
@@ -77,6 +76,7 @@ router.post('/login', async (req, res) => {
                 email: user.email,
                 name: user.name,
                 language: user.language,
+                role: user.role,
             },
         });
     }
@@ -89,7 +89,7 @@ router.post('/login', async (req, res) => {
 });
 // Profil
 router.get('/me', auth_1.authMiddleware, (req, res) => {
-    const user = database_1.default.prepare('SELECT id, email, name, language, created_at FROM users WHERE id = ?').get(req.userId);
+    const user = database_1.default.prepare('SELECT id, email, name, language, role, created_at FROM users WHERE id = ?').get(req.userId);
     if (!user) {
         return res.status(404).json({ error: 'Utilisateur non trouvé' });
     }

@@ -7,7 +7,6 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-// Schéma de mot de passe fort : 8+ car., au moins une majuscule, une minuscule, un chiffre, un symbole
 const passwordSchema = z.string()
   .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
   .regex(/[A-Z]/, 'Le mot de passe doit contenir au moins une majuscule')
@@ -42,10 +41,9 @@ router.post('/register', async (req: Request, res: Response) => {
 
     const passwordHash = await bcrypt.hash(data.password, 12);
     const result = db.prepare(
-      'INSERT INTO users (email, pin_hash, name, language) VALUES (?, ?, ?, ?)'
-    ).run(data.email, passwordHash, data.name, data.language || 'fr');
+      'INSERT INTO users (email, pin_hash, name, language, role) VALUES (?, ?, ?, ?, ?)'
+    ).run(data.email, passwordHash, data.name, data.language || 'fr', 'user');
 
-    // On ne connecte plus automatiquement l'utilisateur
     res.status(201).json({
       message: 'Compte créé avec succès',
       user: {
@@ -53,6 +51,7 @@ router.post('/register', async (req: Request, res: Response) => {
         email: data.email,
         name: data.name,
         language: data.language || 'fr',
+        role: 'user',
       },
     });
   } catch (error) {
@@ -68,7 +67,9 @@ router.post('/login', async (req: Request, res: Response) => {
   try {
     const data = loginSchema.parse(req.body);
 
-    const user: any = db.prepare('SELECT * FROM users WHERE email = ?').get(data.email);
+    const user: any = db.prepare(
+      'SELECT id, email, pin_hash, name, language, role, created_at FROM users WHERE email = ?'
+    ).get(data.email);
     if (!user) {
       return res.status(400).json({ error: 'Email ou mot de passe incorrect' });
     }
@@ -79,7 +80,7 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { id: user.id },
+      { id: user.id, role: user.role },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN as any }
     );
@@ -91,6 +92,7 @@ router.post('/login', async (req: Request, res: Response) => {
         email: user.email,
         name: user.name,
         language: user.language,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -104,7 +106,7 @@ router.post('/login', async (req: Request, res: Response) => {
 // Profil
 router.get('/me', authMiddleware, (req: AuthRequest, res: Response) => {
   const user: any = db.prepare(
-    'SELECT id, email, name, language, created_at FROM users WHERE id = ?'
+    'SELECT id, email, name, language, role, created_at FROM users WHERE id = ?'
   ).get(req.userId);
 
   if (!user) {

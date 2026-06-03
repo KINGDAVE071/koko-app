@@ -13,6 +13,8 @@ db.exec(`
     pin_hash TEXT NOT NULL,
     name TEXT NOT NULL,
     language TEXT DEFAULT 'fr',
+    role TEXT DEFAULT 'user',
+    premium_until TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -117,5 +119,12 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
 `);
+
+// Ajouter les colonnes si la base existante ne les a pas déjà (ignore les erreurs)
+try { db.exec(`ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'`); } catch (e) {}
+try { db.exec(`ALTER TABLE users ADD COLUMN premium_until TEXT`); } catch (e) {}
+
+// Promouvoir test@koko.com en admin (idempotent)
+db.prepare(`UPDATE users SET role = 'admin' WHERE email = 'test@koko.com'`).run();
 
 export default db;
