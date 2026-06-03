@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useLanguage } from '@/i18n/LanguageContext';
+import api from '@/lib/api';
 import { MapPin, Navigation } from 'lucide-react';
 
 interface Pharmacy {
@@ -31,20 +32,17 @@ export default function PharmaciesPage() {
         setLocation({ lat: position.coords.latitude, lon: position.coords.longitude });
         fetchNearbyPharmacies(position.coords.latitude, position.coords.longitude);
       },
-      () => setError('Impossible d\'obtenir votre position. Veuillez autoriser la localisation.')
+      () => setError('Impossible d\'obtenir votre position. Autorisez la localisation.')
     );
   };
 
   const fetchNearbyPharmacies = async (lat: number, lon: number) => {
     setLoading(true);
+    setError('');
     try {
-      // Requête Overpass API (gratuite, pas de clé API)
-      const query = `[out:json];(node["amenity"="pharmacy"](around:5000,${lat},${lon}););out;`;
-      const res = await fetch('https://overpass-api.de/api/interpreter', {
-        method: 'POST',
-        body: query,
-      });
-      const data = await res.json();
+      // Appeler notre backend proxy
+      const res = await api.post('/pharmacies', { lat, lon });
+      const data = res.data;
       const results = data.elements.map((el: any) => ({
         id: el.id,
         name: el.tags.name || 'Pharmacie',
@@ -55,8 +53,9 @@ export default function PharmaciesPage() {
       }));
       results.sort((a: Pharmacy, b: Pharmacy) => (a.distance || 0) - (b.distance || 0));
       setPharmacies(results);
+      if (results.length === 0) setError('Aucune pharmacie trouvée dans un rayon de 5 km.');
     } catch (e) {
-      setError('Erreur lors de la recherche des pharmacies');
+      setError('Erreur lors de la recherche des pharmacies. Vérifiez votre connexion.');
     } finally {
       setLoading(false);
     }
@@ -96,7 +95,6 @@ export default function PharmaciesPage() {
   );
 }
 
-// Fonction de calcul de distance (Haversine)
 function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
   const dLat = deg2rad(lat2 - lat1);
