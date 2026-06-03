@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/i18n/LanguageContext';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, MapPin } from 'lucide-react';
+import PremiumGate from '@/components/PremiumGate';
+import Link from 'next/link';
 
 interface Medication {
   id: number;
@@ -57,6 +59,11 @@ export default function DashboardPage() {
   return (
     <div className="p-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       <h1 className="text-2xl font-bold mb-4">{welcomeMessage}</h1>
+
+      <Link href="/dashboard/pharmacies" className="flex items-center justify-center w-full py-3 mb-4 border-2 border-dashed border-koko-orange text-koko-orange font-bold rounded-xl hover:bg-koko-orange/5 transition-colors">
+        <MapPin className="mr-2" size={20} /> Pharmacies à proximité
+      </Link>
+
       <div className="bg-white dark:bg-koko-blue rounded-2xl p-5 shadow-koko mb-4">
         <h2 className="text-lg font-bold mb-3">💊 {t('dashboard.pilulier')}</h2>
         {medications.length === 0 && <p className="text-gray-500">{t('dashboard.noMeds')}</p>}
@@ -69,9 +76,13 @@ export default function DashboardPage() {
             <button onClick={() => handleDelete(med.id)} className="text-red-500"><Trash2 size={18} /></button>
           </div>
         ))}
-        <button onClick={() => setShowAdd(!showAdd)} className="mt-3 flex items-center text-koko-orange font-medium">
-          <Plus size={18} className="mr-1" /> {t('dashboard.addMed')}
-        </button>
+
+        <PremiumGate featureName="Ajouter plus de 3 médicaments">
+          <button onClick={() => setShowAdd(!showAdd)} className="mt-3 flex items-center text-koko-orange font-medium">
+            <Plus size={18} className="mr-1" /> {t('dashboard.addMed')}
+          </button>
+        </PremiumGate>
+
         {showAdd && (
           <form onSubmit={handleAdd} className="mt-4 space-y-3">
             <input type="text" placeholder="Nom" value={newMed.name} onChange={e => setNewMed({...newMed, name: e.target.value})} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:text-white" required />

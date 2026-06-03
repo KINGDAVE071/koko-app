@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { Plus, Eye } from 'lucide-react';
 import ReceiptPDF from '@/components/ReceiptPDF';
+import PremiumGate from '@/components/PremiumGate';
 
 interface Receipt {
   id: number;
@@ -79,7 +80,9 @@ export default function ReceiptsPage() {
                 <p className="text-xs text-gray-400">{new Date(r.created_at).toLocaleDateString()}</p>
               </div>
               <div className="flex space-x-2">
-                <ReceiptPDF receipt={r} />
+                <PremiumGate featureName="Télécharger la quittance en PDF">
+                  <ReceiptPDF receipt={r} />
+                </PremiumGate>
                 <button className="text-koko-orange hover:text-koko-orange-dark transition-colors duration-200"><Eye size={18} /></button>
               </div>
             </div>
