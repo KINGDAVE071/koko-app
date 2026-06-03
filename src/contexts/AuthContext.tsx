@@ -13,8 +13,8 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, pin: string) => Promise<void>;
-  register: (email: string, pin: string, name: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
 }
@@ -43,8 +43,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(false);
   }, []);
 
-  const login = async (email: string, pin: string) => {
-    const res = await api.post('/auth/login', { email, pin });
+  const login = async (email: string, password: string) => {
+    const res = await api.post('/auth/login', { email, password });
     const { token: newToken, user: newUser } = res.data;
     localStorage.setItem('koko_token', newToken);
     localStorage.setItem('koko_user', JSON.stringify(newUser));
@@ -52,8 +52,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(newUser);
   };
 
-  const register = async (email: string, pin: string, name: string) => {
-    const res = await api.post('/auth/register', { email, pin, name });
+  const register = async (email: string, password: string, name: string) => {
+    const res = await api.post('/auth/register', { email, password, name });
     const { token: newToken, user: newUser } = res.data;
     localStorage.setItem('koko_token', newToken);
     localStorage.setItem('koko_user', JSON.stringify(newUser));
