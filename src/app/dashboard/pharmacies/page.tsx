@@ -40,9 +40,13 @@ export default function PharmaciesPage() {
     setLoading(true);
     setError('');
     try {
-      // Appeler notre backend proxy
       const res = await api.post('/pharmacies', { lat, lon });
       const data = res.data;
+      if (!data.elements || data.elements.length === 0) {
+        setError('Aucune pharmacie trouvée dans un rayon de 5 km.');
+        setLoading(false);
+        return;
+      }
       const results = data.elements.map((el: any) => ({
         id: el.id,
         name: el.tags.name || 'Pharmacie',
@@ -53,7 +57,6 @@ export default function PharmaciesPage() {
       }));
       results.sort((a: Pharmacy, b: Pharmacy) => (a.distance || 0) - (b.distance || 0));
       setPharmacies(results);
-      if (results.length === 0) setError('Aucune pharmacie trouvée dans un rayon de 5 km.');
     } catch (e) {
       setError('Erreur lors de la recherche des pharmacies. Vérifiez votre connexion.');
     } finally {
