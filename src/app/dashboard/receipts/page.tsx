@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { Plus, Eye } from 'lucide-react';
+import ReceiptPDF from '@/components/ReceiptPDF';
 
 interface Receipt {
   id: number;
@@ -13,6 +14,7 @@ interface Receipt {
   amount: number;
   currency: string;
   description?: string;
+  location?: string;
   created_at: string;
 }
 
@@ -61,6 +63,7 @@ export default function ReceiptsPage() {
           <input placeholder={t('receipts.to')} value={form.to_name} onChange={e => setForm({...form, to_name: e.target.value})} className="w-full p-2 border rounded-lg" required />
           <input type="number" placeholder={t('receipts.amount')} value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} className="w-full p-2 border rounded-lg" required />
           <input placeholder={t('receipts.description')} value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full p-2 border rounded-lg" />
+          <input placeholder={t('receipts.location')} value={form.location} onChange={e => setForm({...form, location: e.target.value})} className="w-full p-2 border rounded-lg" />
           <button type="submit" className="w-full py-2 bg-koko-orange text-white rounded-lg transition-colors duration-200 hover:bg-koko-orange-dark">
             {t('receipts.create')}
           </button>
@@ -75,7 +78,10 @@ export default function ReceiptsPage() {
                 <p className="text-sm text-gray-500">{r.type} - {r.amount} {r.currency}</p>
                 <p className="text-xs text-gray-400">{new Date(r.created_at).toLocaleDateString()}</p>
               </div>
-              <button className="text-koko-orange hover:text-koko-orange-dark transition-colors duration-200"><Eye size={18} /></button>
+              <div className="flex space-x-2">
+                <ReceiptPDF receipt={r} />
+                <button className="text-koko-orange hover:text-koko-orange-dark transition-colors duration-200"><Eye size={18} /></button>
+              </div>
             </div>
           </div>
         ))}
