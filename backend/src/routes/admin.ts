@@ -7,7 +7,7 @@ const router = Router();
 
 router.use(authMiddleware, adminMiddleware);
 
-router.get('/users', (req: AuthRequest, res: Response) => {
+router.get('/users', (_req: AuthRequest, res: Response) => {
   const users = db.prepare(
     'SELECT id, email, name, language, role, created_at FROM users ORDER BY created_at DESC'
   ).all();
@@ -15,10 +15,11 @@ router.get('/users', (req: AuthRequest, res: Response) => {
 });
 
 router.put('/users/:id/premium', (req: AuthRequest, res: Response) => {
-  const userId = req.params.id;
+  const userId = req.params.id as string;
   const { premium } = req.body;
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
   if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
+
   if (premium) {
     const newDate = new Date();
     newDate.setDate(newDate.getDate() + 30);
@@ -30,7 +31,7 @@ router.put('/users/:id/premium', (req: AuthRequest, res: Response) => {
 });
 
 router.delete('/users/:id', (req: AuthRequest, res: Response) => {
-  const userId = req.params.id;
+  const userId = req.params.id as string;
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
   if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
   if (parseInt(userId) === req.userId) {
@@ -40,7 +41,7 @@ router.delete('/users/:id', (req: AuthRequest, res: Response) => {
   res.json({ message: 'Utilisateur supprimé' });
 });
 
-router.get('/stats', (req: AuthRequest, res: Response) => {
+router.get('/stats', (_req: AuthRequest, res: Response) => {
   const totalUsers = (db.prepare('SELECT COUNT(*) as count FROM users').get() as any).count;
   const premiumUsers = (db.prepare("SELECT COUNT(*) as count FROM users WHERE premium_until > datetime('now')").get() as any).count;
   res.json({ totalUsers, premiumUsers });

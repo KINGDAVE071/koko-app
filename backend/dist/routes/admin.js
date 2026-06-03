@@ -9,7 +9,7 @@ const auth_1 = require("../middleware/auth");
 const admin_1 = require("../middleware/admin");
 const router = (0, express_1.Router)();
 router.use(auth_1.authMiddleware, admin_1.adminMiddleware);
-router.get('/users', (req, res) => {
+router.get('/users', (_req, res) => {
     const users = database_1.default.prepare('SELECT id, email, name, language, role, created_at FROM users ORDER BY created_at DESC').all();
     res.json({ users });
 });
@@ -40,7 +40,7 @@ router.delete('/users/:id', (req, res) => {
     database_1.default.prepare('DELETE FROM users WHERE id = ?').run(userId);
     res.json({ message: 'Utilisateur supprimé' });
 });
-router.get('/stats', (req, res) => {
+router.get('/stats', (_req, res) => {
     const totalUsers = database_1.default.prepare('SELECT COUNT(*) as count FROM users').get().count;
     const premiumUsers = database_1.default.prepare("SELECT COUNT(*) as count FROM users WHERE premium_until > datetime('now')").get().count;
     res.json({ totalUsers, premiumUsers });
