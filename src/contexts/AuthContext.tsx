@@ -9,6 +9,7 @@ interface User {
   name: string;
   language: string;
   role?: string;
+  premium_until?: string;
 }
 
 interface AuthContextType {
