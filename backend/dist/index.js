@@ -16,6 +16,8 @@ const products_1 = __importDefault(require("./routes/products"));
 const clients_1 = __importDefault(require("./routes/clients"));
 const transactions_1 = __importDefault(require("./routes/transactions"));
 const business_1 = __importDefault(require("./routes/business"));
+const admin_1 = __importDefault(require("./routes/admin"));
+const promote_1 = __importDefault(require("./routes/promote"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use((0, helmet_1.default)());
@@ -38,6 +40,8 @@ app.use('/api/products', products_1.default);
 app.use('/api/clients', clients_1.default);
 app.use('/api/transactions', transactions_1.default);
 app.use('/api/business', business_1.default);
+app.use('/api/admin', admin_1.default);
+app.use('/api/promote', promote_1.default);
 app.get('/', (_req, res) => {
     res.json({ status: 'ok', app: 'KOKO API' });
 });

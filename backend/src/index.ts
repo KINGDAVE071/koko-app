@@ -1,4 +1,3 @@
-import promoteRoutes from './routes/promote';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -12,6 +11,8 @@ import productRoutes from './routes/products';
 import clientRoutes from './routes/clients';
 import transactionRoutes from './routes/transactions';
 import businessRoutes from './routes/business';
+import adminRoutes from './routes/admin';
+import promoteRoutes from './routes/promote';
 
 dotenv.config();
 
@@ -39,6 +40,8 @@ app.use('/api/products', productRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/business', businessRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/promote', promoteRoutes);
 
 app.get('/', (_req, res) => {
   res.json({ status: 'ok', app: 'KOKO API' });
