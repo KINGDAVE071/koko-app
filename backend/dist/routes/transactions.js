@@ -14,21 +14,19 @@ const transactionSchema = zod_1.z.object({
     description: zod_1.z.string().optional(),
     date: zod_1.z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
-router.get('/', auth_1.authMiddleware, (req, res) => {
-    const transactions = database_1.default.prepare('SELECT * FROM transactions WHERE user_id = ? ORDER BY date DESC').all(req.userId);
-    const income = database_1.default.prepare("SELECT SUM(amount) as total FROM transactions WHERE user_id = ? AND type = 'income'").get(req.userId);
-    const expense = database_1.default.prepare("SELECT SUM(amount) as total FROM transactions WHERE user_id = ? AND type = 'expense'").get(req.userId);
-    res.json({
-        transactions,
-        balance: (income?.total || 0) - (expense?.total || 0),
-    });
+router.get('/', auth_1.authMiddleware, async (req, res) => {
+    const txResult = await database_1.default.query('SELECT * FROM transactions WHERE user_id = $1 ORDER BY date DESC', [req.userId]);
+    const incomeResult = await database_1.default.query("SELECT COALESCE(SUM(amount),0) AS total FROM transactions WHERE user_id = $1 AND type = 'income'", [req.userId]);
+    const expenseResult = await database_1.default.query("SELECT COALESCE(SUM(amount),0) AS total FROM transactions WHERE user_id = $1 AND type = 'expense'", [req.userId]);
+    const income = parseFloat(incomeResult.rows[0].total);
+    const expense = parseFloat(expenseResult.rows[0].total);
+    res.json({ transactions: txResult.rows, balance: income - expense });
 });
-router.post('/', auth_1.authMiddleware, (req, res) => {
+router.post('/', auth_1.authMiddleware, async (req, res) => {
     try {
         const data = transactionSchema.parse(req.body);
-        const result = database_1.default.prepare('INSERT INTO transactions (user_id, type, amount, description, date) VALUES (?, ?, ?, ?, ?)').run(req.userId, data.type, data.amount, data.description || null, data.date);
-        const transaction = database_1.default.prepare('SELECT * FROM transactions WHERE id = ?').get(result.lastInsertRowid);
-        res.status(201).json({ transaction });
+        const result = await database_1.default.query('INSERT INTO transactions (user_id, type, amount, description, date) VALUES ($1,$2,$3,$4,$5) RETURNING *', [req.userId, data.type, data.amount, data.description || null, data.date]);
+        res.status(201).json({ transaction: result.rows[0] });
     }
     catch (error) {
         if (error instanceof zod_1.z.ZodError)

@@ -44,11 +44,7 @@ app.use('/api/business', business_1.default);
 app.use('/api/admin', admin_1.default);
 app.use('/api/promote', promote_1.default);
 app.use('/api/pharmacies', pharmacies_1.default);
-app.get('/', (_req, res) => {
-    res.json({ status: 'ok', app: 'KOKO API' });
-});
+app.get('/', (_req, res) => res.json({ status: 'ok', app: 'KOKO API' }));
 const PORT = parseInt(process.env.PORT || '5000', 10);
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 KOKO API démarrée sur http://localhost:${PORT}`);
-});
+app.listen(PORT, '0.0.0.0', () => console.log(`🚀 KOKO API démarrée sur http://localhost:${PORT}`));
 //# sourceMappingURL=index.js.map

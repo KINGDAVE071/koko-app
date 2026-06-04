@@ -7,14 +7,14 @@ const express_1 = require("express");
 const database_1 = __importDefault(require("../database"));
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
-router.post('/promote', auth_1.authMiddleware, (req, res) => {
+router.post('/promote', auth_1.authMiddleware, async (req, res) => {
     const { email } = req.body;
     if (!email)
         return res.status(400).json({ error: 'Email requis' });
-    const user = database_1.default.prepare('SELECT * FROM users WHERE email = ?').get(email);
-    if (!user)
+    const result = await database_1.default.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (result.rows.length === 0)
         return res.status(404).json({ error: 'Utilisateur non trouvé' });
-    database_1.default.prepare("UPDATE users SET role = 'admin' WHERE email = ?").run(email);
+    await database_1.default.query("UPDATE users SET role = 'admin' WHERE email = $1", [email]);
     res.json({ message: `L'utilisateur ${email} est maintenant administrateur.` });
 });
 exports.default = router;

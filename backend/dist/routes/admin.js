@@ -9,41 +9,32 @@ const auth_1 = require("../middleware/auth");
 const admin_1 = require("../middleware/admin");
 const router = (0, express_1.Router)();
 router.use(auth_1.authMiddleware, admin_1.adminMiddleware);
-router.get('/users', (_req, res) => {
-    const users = database_1.default.prepare('SELECT id, email, name, language, role, created_at FROM users ORDER BY created_at DESC').all();
-    res.json({ users });
+router.get('/users', async (req, res) => {
+    const result = await database_1.default.query('SELECT id, email, name, language, role, created_at FROM users ORDER BY created_at DESC');
+    res.json({ users: result.rows });
 });
-router.put('/users/:id/premium', (req, res) => {
+router.put('/users/:id/premium', async (req, res) => {
     const userId = req.params.id;
     const { premium } = req.body;
-    const user = database_1.default.prepare('SELECT * FROM users WHERE id = ?').get(userId);
-    if (!user)
-        return res.status(404).json({ error: 'Utilisateur non trouvé' });
     if (premium) {
-        const newDate = new Date();
-        newDate.setDate(newDate.getDate() + 30);
-        database_1.default.prepare('UPDATE users SET premium_until = ? WHERE id = ?').run(newDate.toISOString(), userId);
+        await database_1.default.query("UPDATE users SET premium_until = NOW() + INTERVAL '30 days' WHERE id = $1", [userId]);
     }
     else {
-        database_1.default.prepare('UPDATE users SET premium_until = NULL WHERE id = ?').run(userId);
+        await database_1.default.query('UPDATE users SET premium_until = NULL WHERE id = $1', [userId]);
     }
     res.json({ message: 'Statut premium mis à jour' });
 });
-router.delete('/users/:id', (req, res) => {
-    const userId = req.params.id;
-    const user = database_1.default.prepare('SELECT * FROM users WHERE id = ?').get(userId);
-    if (!user)
-        return res.status(404).json({ error: 'Utilisateur non trouvé' });
-    if (parseInt(userId) === req.userId) {
+router.delete('/users/:id', async (req, res) => {
+    const userId = parseInt(req.params.id);
+    if (userId === req.userId)
         return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte' });
-    }
-    database_1.default.prepare('DELETE FROM users WHERE id = ?').run(userId);
+    await database_1.default.query('DELETE FROM users WHERE id = $1', [userId]);
     res.json({ message: 'Utilisateur supprimé' });
 });
-router.get('/stats', (_req, res) => {
-    const totalUsers = database_1.default.prepare('SELECT COUNT(*) as count FROM users').get().count;
-    const premiumUsers = database_1.default.prepare("SELECT COUNT(*) as count FROM users WHERE premium_until > datetime('now')").get().count;
-    res.json({ totalUsers, premiumUsers });
+router.get('/stats', async (req, res) => {
+    const total = await database_1.default.query('SELECT COUNT(*)::int AS count FROM users');
+    const premium = await database_1.default.query("SELECT COUNT(*)::int AS count FROM users WHERE premium_until > NOW()");
+    res.json({ totalUsers: total.rows[0].count, premiumUsers: premium.rows[0].count });
 });
 exports.default = router;
 //# sourceMappingURL=admin.js.map

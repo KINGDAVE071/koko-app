@@ -18,7 +18,6 @@ import pharmaciesRoutes from './routes/pharmacies';
 dotenv.config();
 
 const app = express();
-
 app.use(helmet());
 app.use(cors({
   origin: ['http://localhost:3000', 'http://10.10.11.53:3000', 'https://koko-app-seven.vercel.app'],
@@ -45,11 +44,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/promote', promoteRoutes);
 app.use('/api/pharmacies', pharmaciesRoutes);
 
-app.get('/', (_req, res) => {
-  res.json({ status: 'ok', app: 'KOKO API' });
-});
+app.get('/', (_req, res) => res.json({ status: 'ok', app: 'KOKO API' }));
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 KOKO API démarrée sur http://localhost:${PORT}`);
-});
+app.listen(PORT, '0.0.0.0', () => console.log(`🚀 KOKO API démarrée sur http://localhost:${PORT}`));

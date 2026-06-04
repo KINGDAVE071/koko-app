@@ -15,16 +15,15 @@ const productSchema = zod_1.z.object({
     stock: zod_1.z.number().optional(),
     tva: zod_1.z.number().min(0).max(100).optional(),
 });
-router.get('/', auth_1.authMiddleware, (req, res) => {
-    const products = database_1.default.prepare('SELECT * FROM products WHERE user_id = ? ORDER BY name').all(req.userId);
-    res.json({ products });
+router.get('/', auth_1.authMiddleware, async (req, res) => {
+    const result = await database_1.default.query('SELECT * FROM products WHERE user_id = $1 ORDER BY name', [req.userId]);
+    res.json({ products: result.rows });
 });
-router.post('/', auth_1.authMiddleware, (req, res) => {
+router.post('/', auth_1.authMiddleware, async (req, res) => {
     try {
         const data = productSchema.parse(req.body);
-        const result = database_1.default.prepare('INSERT INTO products (user_id, name, price, unit, stock, tva) VALUES (?, ?, ?, ?, ?, ?)').run(req.userId, data.name, data.price, data.unit || 'pièce', data.stock || 0, data.tva || 0);
-        const product = database_1.default.prepare('SELECT * FROM products WHERE id = ?').get(result.lastInsertRowid);
-        res.status(201).json({ product });
+        const result = await database_1.default.query('INSERT INTO products (user_id, name, price, unit, stock, tva) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *', [req.userId, data.name, data.price, data.unit || 'pièce', data.stock || 0, data.tva || 0]);
+        res.status(201).json({ product: result.rows[0] });
     }
     catch (error) {
         if (error instanceof zod_1.z.ZodError)
@@ -32,8 +31,8 @@ router.post('/', auth_1.authMiddleware, (req, res) => {
         res.status(500).json({ error: 'Erreur serveur' });
     }
 });
-router.delete('/:id', auth_1.authMiddleware, (req, res) => {
-    database_1.default.prepare('DELETE FROM products WHERE id = ? AND user_id = ?').run(req.params.id, req.userId);
+router.delete('/:id', auth_1.authMiddleware, async (req, res) => {
+    await database_1.default.query('DELETE FROM products WHERE id = $1 AND user_id = $2', [req.params.id, req.userId]);
     res.json({ message: 'Produit supprimé' });
 });
 exports.default = router;
