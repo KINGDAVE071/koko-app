@@ -13,6 +13,8 @@ import transactionRoutes from './routes/transactions';
 import businessRoutes from './routes/business';
 import adminRoutes from './routes/admin';
 import promoteRoutes from './routes/promote';
+import authCheckRoutes from './routes/auth-check';
+import authCheckRoutes from './routes/auth-check';
 import pharmaciesRoutes from './routes/pharmacies';
 
 dotenv.config();
@@ -42,6 +44,8 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/business', businessRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/promote', promoteRoutes);
+app.use('/api/auth-check', authCheckRoutes);
+app.use('/api/auth-check', authCheckRoutes);
 app.use('/api/pharmacies', pharmaciesRoutes);
 
 app.get('/', (_req, res) => res.json({ status: 'ok', app: 'KOKO API' }));

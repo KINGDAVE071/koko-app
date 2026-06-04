@@ -77,7 +77,7 @@ export default function LoginPage() {
         <p className="text-center mt-4 text-sm text-gray-500 dark:text-gray-400">
           {t('login.noAccount')}{' '}
           <Link href="/register" className="text-koko-orange font-medium">
-            {t('register.loginLink')}
+            {t('login.registerLink')}
           </Link>
         </p>
       </div>
