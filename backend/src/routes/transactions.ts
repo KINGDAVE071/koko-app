@@ -34,4 +34,16 @@ router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// DELETE /api/transactions/:id
+router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('DELETE FROM transactions WHERE id = $1 AND user_id = $2 RETURNING id', [id, req.userId]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Transaction non trouvée' });
+    res.json({ message: 'Transaction supprimée' });
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 export default router;

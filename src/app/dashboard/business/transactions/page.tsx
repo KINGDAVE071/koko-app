@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useLanguage } from '@/i18n/LanguageContext';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 
 interface Transaction {
   id: number;
@@ -19,6 +19,7 @@ export default function TransactionsPage() {
   const [balance, setBalance] = useState(0);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ type: 'income', amount: '', description: '', date: new Date().toISOString().split('T')[0] });
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const fetchData = async () => {
     const res = await api.get('/transactions');
@@ -36,13 +37,41 @@ export default function TransactionsPage() {
     fetchData();
   };
 
+  const handleDeleteSingle = async (id: number) => {
+    if (confirm('Supprimer cette transaction ?')) {
+      await api.delete(`/transactions/${id}`);
+      fetchData();
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Supprimer ${selectedIds.length} transaction(s) sélectionnée(s) ?`)) return;
+    for (const id of selectedIds) {
+      await api.delete(`/transactions/${id}`);
+    }
+    fetchData();
+    setSelectedIds([]);
+  };
+
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">💰 {t('business.transactions')}</h1>
-        <button onClick={() => setShowAdd(!showAdd)} className="bg-koko-orange text-white p-2 rounded-lg">
-          <Plus size={20} />
-        </button>
+        <div className="flex space-x-2">
+          {selectedIds.length > 0 && (
+            <button onClick={handleDeleteSelected} className="px-3 py-1 bg-red-500 text-white text-sm rounded-lg">
+              Supprimer ({selectedIds.length})
+            </button>
+          )}
+          <button onClick={() => setShowAdd(!showAdd)} className="bg-koko-orange text-white p-2 rounded-lg">
+            <Plus size={20} />
+          </button>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-koko-blue p-4 rounded-xl shadow-koko mb-4">
@@ -62,17 +91,28 @@ export default function TransactionsPage() {
         </form>
       )}
 
-      {transactions.map(tx => (
-        <div key={tx.id} className={`p-3 rounded-xl shadow-koko mb-2 flex justify-between items-center ${tx.type === 'income' ? 'bg-green-50 dark:bg-green-900' : 'bg-red-50 dark:bg-red-900'}`}>
-          <div>
-            <p className="font-semibold">{tx.description || (tx.type === 'income' ? t('business.income') : t('business.expense'))}</p>
-            <p className="text-sm text-gray-500">{tx.date}</p>
+      <div className="space-y-2">
+        {transactions.map(tx => (
+          <div key={tx.id} className={`p-3 rounded-xl shadow-koko flex items-center ${tx.type === 'income' ? 'bg-green-50 dark:bg-green-900' : 'bg-red-50 dark:bg-red-900'}`}>
+            <input
+              type="checkbox"
+              checked={selectedIds.includes(tx.id)}
+              onChange={() => toggleSelect(tx.id)}
+              className="mr-2"
+            />
+            <div className="flex-1">
+              <p className="font-semibold">{tx.description || (tx.type === 'income' ? t('business.income') : t('business.expense'))}</p>
+              <p className="text-sm text-gray-500">{tx.date}</p>
+            </div>
+            <p className={`font-bold mr-2 ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+              {tx.type === 'income' ? '+' : '-'}{tx.amount.toLocaleString()} FCFA
+            </p>
+            <button onClick={() => handleDeleteSingle(tx.id)} className="text-red-500 hover:text-red-700">
+              <X size={16} />
+            </button>
           </div>
-          <p className={`font-bold ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-            {tx.type === 'income' ? '+' : '-'}{tx.amount.toLocaleString()} FCFA
-          </p>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }

@@ -24,6 +24,7 @@ export default function ReceiptsPage() {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ type: 'location', from_name: '', to_name: '', amount: '', currency: 'XOF', description: '', location: '' });
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const fetchReceipts = async () => {
     const res = await api.get('/receipts');
@@ -39,12 +40,40 @@ export default function ReceiptsPage() {
     fetchReceipts();
   };
 
+  const handleDeleteSingle = (id: number) => {
+    setReceipts(prev => prev.filter(r => r.id !== id));
+    setSelectedIds(prev => prev.filter(x => x !== id));
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Supprimer ${selectedIds.length} reçu(s) sélectionné(s) ?`)) return;
+    for (const id of selectedIds) {
+      await api.delete(`/receipts/${id}`);
+    }
+    fetchReceipts();
+    setSelectedIds([]);
+  };
+
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">🧾 {t('receipts.title')}</h1>
-      <button onClick={() => setShowAdd(!showAdd)} className="flex items-center text-koko-orange font-medium mb-4">
-        <Plus size={18} className="mr-1" /> {t('receipts.new')}
-      </button>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">🧾 {t('receipts.title')}</h1>
+        <div className="flex space-x-2">
+          {selectedIds.length > 0 && (
+            <button onClick={handleDeleteSelected} className="px-3 py-1 bg-red-500 text-white text-sm rounded-lg">
+              Supprimer ({selectedIds.length})
+            </button>
+          )}
+          <button onClick={() => setShowAdd(!showAdd)} className="flex items-center text-koko-orange font-medium">
+            <Plus size={18} className="mr-1" /> {t('receipts.new')}
+          </button>
+        </div>
+      </div>
       {showAdd && (
         <form onSubmit={handleSubmit} className="bg-white dark:bg-koko-blue p-4 rounded-xl shadow-koko mb-4 space-y-3">
           <select value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="w-full p-2 border rounded-lg">
@@ -64,7 +93,13 @@ export default function ReceiptsPage() {
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {receipts.map(r => (
-          <ReceiptV2 key={r.id} receipt={r} />
+          <ReceiptV2
+            key={r.id}
+            receipt={r}
+            onDelete={handleDeleteSingle}
+            isSelected={selectedIds.includes(r.id)}
+            onSelect={toggleSelect}
+          />
         ))}
       </div>
     </div>
