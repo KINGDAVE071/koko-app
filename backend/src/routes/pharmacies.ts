@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express';
 
 const router = Router();
 
-// Calcule la distance à vol d'oiseau (fallback)
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -11,7 +10,6 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Interroge OSRM pour obtenir distance et durée routières
 async function getOSRMData(lon1: number, lat1: number, lon2: number, lat2: number): Promise<{ distance: number; duration: number } | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
@@ -19,23 +17,22 @@ async function getOSRMData(lon1: number, lat1: number, lon2: number, lat2: numbe
     const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
     const res = await fetch(url, { signal: controller.signal });
     if (res.ok) {
-      const data = await res.json();
+      const data: any = await res.json();
       if (data.routes && data.routes.length > 0) {
         return {
-          distance: data.routes[0].distance / 1000, // km
-          duration: data.routes[0].duration / 60,  // minutes
+          distance: data.routes[0].distance / 1000,
+          duration: data.routes[0].duration / 60,
         };
       }
     }
   } catch (e) {
-    // OSRM indisponible -> fallback géré plus tard
+    // fallback plus tard
   } finally {
     clearTimeout(timeout);
   }
   return null;
 }
 
-// POST /api/pharmacies
 router.post('/', async (req: Request, res: Response) => {
   const { lat, lon } = req.body;
   if (typeof lat !== 'number' || typeof lon !== 'number') {
@@ -46,7 +43,6 @@ router.post('/', async (req: Request, res: Response) => {
   const timeout = setTimeout(() => controller.abort(), 8000);
 
   try {
-    // 1. Recherche des pharmacies via Overpass
     const query = `[out:json];(node["amenity"="pharmacy"](around:5000,${lat},${lon}););out;`;
     const params = new URLSearchParams();
     params.append('data', query);
@@ -66,10 +62,9 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(502).json({ error: `Overpass a répondu ${overpassRes.status}: ${errorText}` });
     }
 
-    const overpassData = await overpassRes.json();
+    const overpassData: any = await overpassRes.json();
     const elements = overpassData.elements || [];
 
-    // 2. Pour chaque pharmacie, tenter OSRM (max 3 appels simultanés pour éviter timeout)
     const pharmacies = [];
     for (let i = 0; i < elements.length; i++) {
       const el = elements[i];
@@ -79,7 +74,6 @@ router.post('/', async (req: Request, res: Response) => {
       let duration: number | undefined;
       let isAirDistance = false;
 
-      // On n'appelle OSRM que pour les 10 premières pharmacies (perf.)
       if (i < 10) {
         const osrm = await getOSRMData(lon, lat, pharmLon, pharmLat);
         if (osrm) {
@@ -99,15 +93,13 @@ router.post('/', async (req: Request, res: Response) => {
         name: el.tags?.name || 'Pharmacie',
         lat: pharmLat,
         lon: pharmLon,
-        distance: Math.round(distance * 10) / 10, // un chiffre après la virgule
+        distance: Math.round(distance * 10) / 10,
         duration: duration ? Math.round(duration) : undefined,
         isAirDistance,
       });
     }
 
-    // Tri par distance croissante
     pharmacies.sort((a, b) => a.distance - b.distance);
-
     res.json({ pharmacies });
   } catch (error: any) {
     if (error.name === 'AbortError') {
