@@ -51,6 +51,7 @@ async function createTables() {
         location TEXT,
         signature_from TEXT,
         signature_to TEXT,
+        hash TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
       CREATE TABLE IF NOT EXISTS products (
@@ -104,6 +105,7 @@ async function createTables() {
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
     `);
+    await client.query(`ALTER TABLE receipts ADD COLUMN IF NOT EXISTS hash TEXT`);
   } finally {
     client.release();
   }
