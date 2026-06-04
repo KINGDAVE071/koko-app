@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { toast } from 'sonner';
 
-export default function RegisterPage() {
+// Composant interne qui utilise useSearchParams
+function RegisterForm() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,7 +20,7 @@ export default function RegisterPage() {
   const searchParams = useSearchParams();
   const { t, lang } = useLanguage();
 
-  // Pré-remplir l'email si venant de Google
+  // Pré-remplir l'email si présent dans l'URL
   useEffect(() => {
     const emailParam = searchParams.get('email');
     if (emailParam) setEmail(emailParam);
@@ -26,7 +28,6 @@ export default function RegisterPage() {
 
   const handleClick = async () => {
     setError('');
-
     if (!name.trim()) {
       setError((t('register.name') || 'Nom') + ' est requis.');
       return;
@@ -95,5 +96,14 @@ export default function RegisterPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+// Page principale avec Suspense
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Chargement...</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }
