@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { toast } from 'sonner';
@@ -15,7 +15,14 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false);
   const { register } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t, lang } = useLanguage();
+
+  // Pré-remplir l'email si venant de Google
+  useEffect(() => {
+    const emailParam = searchParams.get('email');
+    if (emailParam) setEmail(emailParam);
+  }, [searchParams]);
 
   const handleClick = async () => {
     setError('');

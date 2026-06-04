@@ -8,14 +8,30 @@ const handler = NextAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
-  pages: {
-    signIn: '/login',
-  },
   callbacks: {
+    async signIn({ user }) {
+      const email = user.email;
+      if (!email) return false;
+      try {
+        const res = await fetch(
+          `https://koko-api-o2dy.onrender.com/api/auth-check/exists?email=${encodeURIComponent(email)}`
+        );
+        const data = await res.json();
+        if (!data.exists) {
+          // Rediriger vers l'inscription avec l'email pré-rempli
+          return `/register?email=${encodeURIComponent(email)}&fromGoogle=true`;
+        }
+        return true;
+      } catch (e) {
+        return false;
+      }
+    },
     async session({ session, token }) {
-      // Vous pouvez lier l'utilisateur Google à un utilisateur local ici
       return session;
     },
+  },
+  pages: {
+    signIn: '/login',
   },
 });
 
