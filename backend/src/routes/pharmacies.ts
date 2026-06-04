@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 
 const router = Router();
 
+const USER_AGENT = 'Mozilla/5.0 (compatible; KOKO/1.0)';
+
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -10,27 +12,40 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-async function getOSRMData(lon1: number, lat1: number, lon2: number, lat2: number): Promise<{ distance: number; duration: number } | null> {
+async function getOSRMData(lon1: number, lat1: number, lon2: number, lat2: number) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
   try {
     const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
-    const res = await fetch(url, { signal: controller.signal });
+    const res = await fetch(url, { signal: controller.signal, headers: { 'User-Agent': USER_AGENT } });
     if (res.ok) {
       const data: any = await res.json();
-      if (data.routes && data.routes.length > 0) {
-        return {
-          distance: data.routes[0].distance / 1000,
-          duration: data.routes[0].duration / 60,
-        };
+      if (data.routes?.[0]) {
+        return { distance: data.routes[0].distance / 1000, duration: data.routes[0].duration / 60 };
       }
     }
-  } catch (e) {
-    // fallback plus tard
-  } finally {
-    clearTimeout(timeout);
-  }
+  } catch (e) {}
+  finally { clearTimeout(timeout); }
   return null;
+}
+
+async function fetchOverpass(query: string, signal: AbortSignal, endpoint = 'https://overpass-api.de/api/interpreter') {
+  const params = new URLSearchParams({ data: query });
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept': 'application/json',
+      'User-Agent': USER_AGENT,
+    },
+    body: params.toString(),
+    signal,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Overpass ${res.status}: ${text}`);
+  }
+  return res.json();
 }
 
 router.post('/', async (req: Request, res: Response) => {
@@ -44,27 +59,21 @@ router.post('/', async (req: Request, res: Response) => {
 
   try {
     const query = `[out:json];(node["amenity"="pharmacy"](around:5000,${lat},${lon}););out;`;
-    const params = new URLSearchParams();
-    params.append('data', query);
+    let data: any;
 
-    const overpassRes = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json',
-      },
-      body: params.toString(),
-      signal: controller.signal,
-    });
-
-    if (!overpassRes.ok) {
-      const errorText = await overpassRes.text();
-      return res.status(502).json({ error: `Overpass a répondu ${overpassRes.status}: ${errorText}` });
+    // Essayer d'abord le miroir principal
+    try {
+      data = await fetchOverpass(query, controller.signal);
+    } catch (e) {
+      // Fallback sur un miroir (overpass.kumi.systems)
+      try {
+        data = await fetchOverpass(query, controller.signal, 'https://overpass.kumi.systems/api/interpreter');
+      } catch (e2: any) {
+        return res.status(502).json({ error: e2.message || 'Services Overpass indisponibles' });
+      }
     }
 
-    const overpassData: any = await overpassRes.json();
-    const elements = overpassData.elements || [];
-
+    const elements = data.elements || [];
     const pharmacies = [];
     for (let i = 0; i < elements.length; i++) {
       const el = elements[i];

@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const router = (0, express_1.Router)();
+const USER_AGENT = 'Mozilla/5.0 (compatible; KOKO/1.0)';
 function haversineDistance(lat1, lon1, lat2, lon2) {
     const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -14,24 +15,37 @@ async function getOSRMData(lon1, lat1, lon2, lat2) {
     const timeout = setTimeout(() => controller.abort(), 5000);
     try {
         const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
-        const res = await fetch(url, { signal: controller.signal });
+        const res = await fetch(url, { signal: controller.signal, headers: { 'User-Agent': USER_AGENT } });
         if (res.ok) {
             const data = await res.json();
-            if (data.routes && data.routes.length > 0) {
-                return {
-                    distance: data.routes[0].distance / 1000,
-                    duration: data.routes[0].duration / 60,
-                };
+            if (data.routes?.[0]) {
+                return { distance: data.routes[0].distance / 1000, duration: data.routes[0].duration / 60 };
             }
         }
     }
-    catch (e) {
-        // fallback plus tard
-    }
+    catch (e) { }
     finally {
         clearTimeout(timeout);
     }
     return null;
+}
+async function fetchOverpass(query, signal, endpoint = 'https://overpass-api.de/api/interpreter') {
+    const params = new URLSearchParams({ data: query });
+    const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json',
+            'User-Agent': USER_AGENT,
+        },
+        body: params.toString(),
+        signal,
+    });
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Overpass ${res.status}: ${text}`);
+    }
+    return res.json();
 }
 router.post('/', async (req, res) => {
     const { lat, lon } = req.body;
@@ -42,23 +56,21 @@ router.post('/', async (req, res) => {
     const timeout = setTimeout(() => controller.abort(), 8000);
     try {
         const query = `[out:json];(node["amenity"="pharmacy"](around:5000,${lat},${lon}););out;`;
-        const params = new URLSearchParams();
-        params.append('data', query);
-        const overpassRes = await fetch('https://overpass-api.de/api/interpreter', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json',
-            },
-            body: params.toString(),
-            signal: controller.signal,
-        });
-        if (!overpassRes.ok) {
-            const errorText = await overpassRes.text();
-            return res.status(502).json({ error: `Overpass a répondu ${overpassRes.status}: ${errorText}` });
+        let data;
+        // Essayer d'abord le miroir principal
+        try {
+            data = await fetchOverpass(query, controller.signal);
         }
-        const overpassData = await overpassRes.json();
-        const elements = overpassData.elements || [];
+        catch (e) {
+            // Fallback sur un miroir (overpass.kumi.systems)
+            try {
+                data = await fetchOverpass(query, controller.signal, 'https://overpass.kumi.systems/api/interpreter');
+            }
+            catch (e2) {
+                return res.status(502).json({ error: e2.message || 'Services Overpass indisponibles' });
+            }
+        }
+        const elements = data.elements || [];
         const pharmacies = [];
         for (let i = 0; i < elements.length; i++) {
             const el = elements[i];
