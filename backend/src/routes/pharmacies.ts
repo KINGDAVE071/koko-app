@@ -4,6 +4,7 @@ const router = Router();
 
 const USER_AGENT = 'Mozilla/5.0 (compatible; KOKO/1.0)';
 
+// Haversine distance (fallback)
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -12,24 +13,29 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// OSRM routing (timeout 6s)
 async function getOSRMData(lon1: number, lat1: number, lon2: number, lat2: number) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
   try {
-    const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
-    const res = await fetch(url, { signal: controller.signal, headers: { 'User-Agent': USER_AGENT } });
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(6000),  // timeout per-request
+      headers: { 'User-Agent': USER_AGENT },
+    });
     if (res.ok) {
       const data: any = await res.json();
       if (data.routes?.[0]) {
-        return { distance: data.routes[0].distance / 1000, duration: data.routes[0].duration / 60 };
+        return {
+          distance: data.routes[0].distance / 1000,
+          duration: data.routes[0].duration / 60,
+        };
       }
     }
   } catch (e) {}
-  finally { clearTimeout(timeout); }
   return null;
 }
 
-async function fetchOverpass(query: string, signal: AbortSignal, endpoint = 'https://overpass-api.de/api/interpreter') {
+// Overpass API avec timeout (10s) et fallback entre deux miroirs
+async function fetchOverpass(query: string, endpoint: string): Promise<any> {
   const params = new URLSearchParams({ data: query });
   const res = await fetch(endpoint, {
     method: 'POST',
@@ -39,7 +45,7 @@ async function fetchOverpass(query: string, signal: AbortSignal, endpoint = 'htt
       'User-Agent': USER_AGENT,
     },
     body: params.toString(),
-    signal,
+    signal: AbortSignal.timeout(10000),  // 10 secondes
   });
   if (!res.ok) {
     const text = await res.text();
@@ -54,70 +60,67 @@ router.post('/', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Coordonnées GPS invalides' });
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
+  const query = `[out:json];(node["amenity"="pharmacy"](around:5000,${lat},${lon}););out;`;
+  const endpoints = [
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+  ];
 
-  try {
-    const query = `[out:json];(node["amenity"="pharmacy"](around:5000,${lat},${lon}););out;`;
-    let data: any;
+  let overpassData: any;
+  let lastError: string = '';
 
-    // Essayer d'abord le miroir principal
+  // Essaie chaque endpoint successivement
+  for (const endpoint of endpoints) {
     try {
-      data = await fetchOverpass(query, controller.signal);
-    } catch (e) {
-      // Fallback sur un miroir (overpass.kumi.systems)
-      try {
-        data = await fetchOverpass(query, controller.signal, 'https://overpass.kumi.systems/api/interpreter');
-      } catch (e2: any) {
-        return res.status(502).json({ error: e2.message || 'Services Overpass indisponibles' });
-      }
+      overpassData = await fetchOverpass(query, endpoint);
+      break;  // succès, on sort de la boucle
+    } catch (e: any) {
+      lastError = e.message;
+      continue;
     }
+  }
 
-    const elements = data.elements || [];
-    const pharmacies = [];
-    for (let i = 0; i < elements.length; i++) {
-      const el = elements[i];
-      const pharmLat = el.lat;
-      const pharmLon = el.lon;
-      let distance: number;
-      let duration: number | undefined;
-      let isAirDistance = false;
+  if (!overpassData) {
+    return res.status(502).json({ error: `Tous les services Overpass ont échoué. ${lastError}` });
+  }
 
-      if (i < 10) {
-        const osrm = await getOSRMData(lon, lat, pharmLon, pharmLat);
-        if (osrm) {
-          distance = osrm.distance;
-          duration = osrm.duration;
-        } else {
-          distance = haversineDistance(lat, lon, pharmLat, pharmLon);
-          isAirDistance = true;
-        }
+  const elements = overpassData.elements || [];
+  const pharmacies = [];
+  for (let i = 0; i < elements.length; i++) {
+    const el = elements[i];
+    const pharmLat = el.lat;
+    const pharmLon = el.lon;
+    let distance: number;
+    let duration: number | undefined;
+    let isAirDistance = false;
+
+    if (i < 10) {
+      const osrm = await getOSRMData(lon, lat, pharmLon, pharmLat);
+      if (osrm) {
+        distance = osrm.distance;
+        duration = osrm.duration;
       } else {
         distance = haversineDistance(lat, lon, pharmLat, pharmLon);
         isAirDistance = true;
       }
-
-      pharmacies.push({
-        id: el.id,
-        name: el.tags?.name || 'Pharmacie',
-        lat: pharmLat,
-        lon: pharmLon,
-        distance: Math.round(distance * 10) / 10,
-        duration: duration ? Math.round(duration) : undefined,
-        isAirDistance,
-      });
+    } else {
+      distance = haversineDistance(lat, lon, pharmLat, pharmLon);
+      isAirDistance = true;
     }
 
-    pharmacies.sort((a, b) => a.distance - b.distance);
-    res.json({ pharmacies });
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
-      return res.status(504).json({ error: 'La requête a expiré' });
-    }
-    res.status(500).json({ error: error.message || 'Erreur interne' });
-  } finally {
-    clearTimeout(timeout);
+    pharmacies.push({
+      id: el.id,
+      name: el.tags?.name || 'Pharmacie',
+      lat: pharmLat,
+      lon: pharmLon,
+      distance: Math.round(distance * 10) / 10,
+      duration: duration ? Math.round(duration) : undefined,
+      isAirDistance,
+    });
   }
+
+  pharmacies.sort((a, b) => a.distance - b.distance);
+  res.json({ pharmacies });
 });
 
 export default router;
