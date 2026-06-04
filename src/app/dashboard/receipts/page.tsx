@@ -1,12 +1,10 @@
-// Cache bust 1780591530
 'use client';
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { useLanguage } from '@/i18n/LanguageContext';
-import { Plus, Eye } from 'lucide-react';
-import ReceiptPDF from '@/components/ReceiptPDF';
-import PremiumGate from '@/components/PremiumGate';
+import { Plus } from 'lucide-react';
+import ReceiptV2 from '@/components/ReceiptV2';
 
 interface Receipt {
   id: number;
@@ -17,6 +15,7 @@ interface Receipt {
   currency: string;
   description?: string;
   location?: string;
+  hash: string;
   created_at: string;
 }
 
@@ -40,54 +39,32 @@ export default function ReceiptsPage() {
     fetchReceipts();
   };
 
-  const typeOptions = [
-    { value: 'location', label: 'Location' },
-    { value: 'vente', label: 'Vente' },
-    { value: 'pret', label: 'Prêt' },
-    { value: 'service', label: 'Service' },
-    { value: 'autre', label: 'Autre' },
-  ];
-
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">📄 {t('receipts.title')}</h1>
-      <button onClick={() => setShowAdd(!showAdd)} className="flex items-center text-koko-orange font-medium mb-4 transition-colors duration-200 hover:text-koko-orange-dark">
+      <h1 className="text-2xl font-bold mb-4">🧾 {t('receipts.title')}</h1>
+      <button onClick={() => setShowAdd(!showAdd)} className="flex items-center text-koko-orange font-medium mb-4">
         <Plus size={18} className="mr-1" /> {t('receipts.new')}
       </button>
       {showAdd && (
         <form onSubmit={handleSubmit} className="bg-white dark:bg-koko-blue p-4 rounded-xl shadow-koko mb-4 space-y-3">
           <select value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="w-full p-2 border rounded-lg">
-            {typeOptions.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
+            <option value="location">Location</option>
+            <option value="vente">Vente</option>
+            <option value="pret">Prêt</option>
+            <option value="service">Service</option>
+            <option value="autre">Autre</option>
           </select>
           <input placeholder={t('receipts.from')} value={form.from_name} onChange={e => setForm({...form, from_name: e.target.value})} className="w-full p-2 border rounded-lg" required />
           <input placeholder={t('receipts.to')} value={form.to_name} onChange={e => setForm({...form, to_name: e.target.value})} className="w-full p-2 border rounded-lg" required />
           <input type="number" placeholder={t('receipts.amount')} value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} className="w-full p-2 border rounded-lg" required />
           <input placeholder={t('receipts.description')} value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full p-2 border rounded-lg" />
           <input placeholder={t('receipts.location')} value={form.location} onChange={e => setForm({...form, location: e.target.value})} className="w-full p-2 border rounded-lg" />
-          <button type="submit" className="w-full py-2 bg-koko-orange text-white rounded-lg transition-colors duration-200 hover:bg-koko-orange-dark">
-            {t('receipts.create')}
-          </button>
+          <button type="submit" className="w-full py-2 bg-koko-orange text-white rounded-lg">{t('receipts.create')}</button>
         </form>
       )}
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {receipts.map(r => (
-          <div key={r.id} className="bg-white dark:bg-koko-blue p-4 rounded-xl shadow-koko transition-all duration-200 hover:shadow-koko-lg">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="font-bold">{r.from_name} → {r.to_name}</p>
-                <p className="text-sm text-gray-500">{r.type} - {r.amount} {r.currency}</p>
-                <p className="text-xs text-gray-400">{new Date(r.created_at).toLocaleDateString()}</p>
-              </div>
-              <div className="flex space-x-2">
-                <PremiumGate featureName="Télécharger la quittance en PDF">
-                  <ReceiptPDF receipt={r} />
-                </PremiumGate>
-                <button className="text-koko-orange hover:text-koko-orange-dark transition-colors duration-200"><Eye size={18} /></button>
-              </div>
-            </div>
-          </div>
+          <ReceiptV2 key={r.id} receipt={r} />
         ))}
       </div>
     </div>
