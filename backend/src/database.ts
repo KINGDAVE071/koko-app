@@ -77,12 +77,16 @@ async function createTables() {
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL,
+        client_name TEXT,
         type TEXT CHECK(type IN ('devis', 'facture', 'avoir')) NOT NULL DEFAULT 'facture',
         number TEXT NOT NULL,
         date TEXT NOT NULL,
         due_date TEXT,
         total_ht REAL NOT NULL,
         total_ttc REAL NOT NULL,
+        discount REAL DEFAULT 0,
+        notes TEXT,
+        payment_terms TEXT,
         status TEXT DEFAULT 'pending',
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
@@ -105,7 +109,6 @@ async function createTables() {
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
     `);
-    await client.query(`ALTER TABLE receipts ADD COLUMN IF NOT EXISTS hash TEXT`);
   } finally {
     client.release();
   }
