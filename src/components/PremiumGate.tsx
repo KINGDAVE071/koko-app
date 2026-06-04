@@ -10,6 +10,12 @@ interface Props {
 
 export default function PremiumGate({ children, featureName }: Props) {
   const { user } = useAuth();
+
+  // Si la variable NEXT_PUBLIC_PREMIUM_ENABLED n'est pas 'true', tout est gratuit
+  if (process.env.NEXT_PUBLIC_PREMIUM_ENABLED !== 'true') {
+    return <>{children}</>;
+  }
+
   const isPremium = user?.role === 'admin' || (user?.premium_until && new Date(user.premium_until) > new Date());
 
   if (isPremium) {
