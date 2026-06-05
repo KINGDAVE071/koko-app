@@ -5,22 +5,18 @@ import { useLanguage } from '@/i18n/LanguageContext';
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { toast } from 'sonner';
-import { Upload, Camera } from 'lucide-react';
+import { Upload } from 'lucide-react';
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const { t, lang, setLang } = useLanguage();
-  const [logo, setLogo] = useState<string | null>(null);
+  const [logo, setLogo] = useState<string | null>(user?.logo || null);
   const [loadingLogo, setLoadingLogo] = useState(false);
 
-  // Charger le logo actuel
   useEffect(() => {
-    api.get('/auth-logo/logo').then(res => {
-      if (res.data.logo) setLogo(res.data.logo);
-    }).catch(() => {});
-  }, []);
+    setLogo(user?.logo || null);
+  }, [user]);
 
-  // Gérer la sélection d'un fichier image
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -28,15 +24,19 @@ export default function ProfilePage() {
       toast.error('Veuillez sélectionner une image');
       return;
     }
-    // Convertir en base64
+    // Vérifier la taille (2 Mo max)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('L\'image est trop lourde (max 2 Mo)');
+      return;
+    }
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64 = reader.result as string;
       setLogo(base64);
-      // Sauvegarder sur le serveur
       setLoadingLogo(true);
       api.put('/auth-logo/logo', { logo: base64 }).then(() => {
         toast.success('Logo enregistré !');
+        refreshUser();
       }).catch(() => toast.error('Erreur lors de l\'enregistrement'))
       .finally(() => setLoadingLogo(false));
     };
@@ -71,6 +71,7 @@ export default function ProfilePage() {
         {/* Section Logo */}
         <div className="border-t pt-4">
           <h3 className="font-semibold mb-2">Logo des reçus</h3>
+          <p className="text-xs text-gray-400 mb-2">Formats acceptés : PNG, JPG. Taille maximale : 2 Mo.</p>
           {logo && (
             <div className="mb-2 flex justify-center">
               <img src={logo} alt="Logo" className="h-16 object-contain bg-gray-100 rounded p-1" />
@@ -81,7 +82,6 @@ export default function ProfilePage() {
             {loadingLogo ? 'Enregistrement...' : 'Charger un logo'}
             <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
           </label>
-          <p className="text-xs text-gray-400 mt-1">Format PNG ou JPG recommandé. Sera affiché sur vos tickets de caisse.</p>
         </div>
 
         <button onClick={logout} className="mt-4 py-2 px-4 bg-red-500 text-white rounded-lg">
