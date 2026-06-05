@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { X, Eye, Printer } from 'lucide-react';
 import api from '@/lib/api';
 
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: Props) {
+  const { user } = useAuth();
   const [showPreview, setShowPreview] = useState(false);
 
   const handlePrint = () => {
@@ -56,6 +58,8 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
     }
   };
 
+  const logoSrc = user?.logo || null;
+
   return (
     <>
       <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-lg shadow-inner text-xs font-mono relative">
@@ -68,6 +72,11 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
           />
         )}
         <div id={`receipt-${receipt.id}`} className="bg-white dark:bg-gray-900 p-3 rounded text-center">
+          {logoSrc && (
+            <div className="mb-2 flex justify-center">
+              <img src={logoSrc} alt="Logo" className="h-10 object-contain" />
+            </div>
+          )}
           <p className="font-bold text-sm">KOKO - Reçu</p>
           <p className="text-gray-500">{new Date(receipt.created_at).toLocaleString()}</p>
           <hr className="my-1 border-dashed border-gray-300" />
@@ -96,6 +105,11 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
       {showPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowPreview(false)}>
           <div className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-lg w-80 text-xs font-mono" onClick={e => e.stopPropagation()}>
+            {logoSrc && (
+              <div className="mb-2 flex justify-center">
+                <img src={logoSrc} alt="Logo" className="h-10 object-contain" />
+              </div>
+            )}
             <div className="text-center">
               <p className="font-bold text-sm">KOKO - Reçu</p>
               <p className="text-gray-500">{new Date(receipt.created_at).toLocaleString()}</p>

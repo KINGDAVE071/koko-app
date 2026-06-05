@@ -122,3 +122,6 @@ async function createTables() {
 
 createTables().catch(console.error);
 export default pool;
+
+    // Ajout colonne logo pour les utilisateurs
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS logo TEXT`);
