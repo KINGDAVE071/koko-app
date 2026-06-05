@@ -30,7 +30,7 @@ app.use((0, cors_1.default)({
     origin: ['http://localhost:3000', 'http://10.10.11.53:3000', 'https://koko-app-seven.vercel.app'],
     credentials: true,
 }));
-app.use(express_1.default.json({ limit: '10kb' }));
+app.use(express_1.default.json({ limit: '2mb' }));
 const limiter = (0, express_rate_limit_1.default)({
     windowMs: 15 * 60 * 1000,
     max: 100,
