@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { X, Eye, Printer } from 'lucide-react';
 import api from '@/lib/api';
@@ -27,7 +27,22 @@ interface Props {
 
 export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: Props) {
   const { user } = useAuth();
+  const [logo, setLogo] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+
+  // Récupérer le logo depuis le contexte ou directement depuis l'API
+  useEffect(() => {
+    if (user?.logo) {
+      setLogo(user.logo);
+    } else {
+      // Si le logo n'est pas dans le contexte, tenter un appel API
+      api.get('/auth-logo/logo')
+        .then(res => {
+          if (res.data.logo) setLogo(res.data.logo);
+        })
+        .catch(() => {});
+    }
+  }, [user]);
 
   const handlePrint = () => {
     const content = document.getElementById(`receipt-${receipt.id}`);
@@ -58,8 +73,6 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
     }
   };
 
-  const logoSrc = user?.logo || null;
-
   return (
     <>
       <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-lg shadow-inner text-xs font-mono relative">
@@ -72,9 +85,14 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
           />
         )}
         <div id={`receipt-${receipt.id}`} className="bg-white dark:bg-gray-900 p-3 rounded text-center">
-          {logoSrc && (
+          {logo && (
             <div className="mb-2 flex justify-center">
-              <img src={logoSrc} alt="Logo" className="h-10 object-contain" />
+              <img
+                src={logo}
+                alt="Logo"
+                className="max-h-12 max-w-full object-contain opacity-90"
+                style={{ imageRendering: 'auto' }}
+              />
             </div>
           )}
           <p className="font-bold text-sm">KOKO - Reçu</p>
@@ -93,7 +111,8 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
           <button onClick={() => setShowPreview(true)} className="flex-1 py-1 bg-koko-orange text-white rounded text-xs flex items-center justify-center">
             <Eye size={12} className="mr-1" /> Aperçu
           </button>
-          <button onClick={handlePrint} className="flex-1 py-1 bg-koko-orange text-white rounded text-xs flex items-center justify-center">
+          <button onClick={handlePrint} className="flex-1 py-1 bg-koko-orange text-white rounded text-xs flex items-center
+justify-center">
             <Printer size={12} className="mr-1" /> Imprimer
           </button>
           <button onClick={handleDelete} className="flex-1 py-1 bg-red-500 text-white rounded text-xs">
@@ -105,9 +124,13 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
       {showPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowPreview(false)}>
           <div className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-lg w-80 text-xs font-mono" onClick={e => e.stopPropagation()}>
-            {logoSrc && (
+            {logo && (
               <div className="mb-2 flex justify-center">
-                <img src={logoSrc} alt="Logo" className="h-10 object-contain" />
+                <img
+                  src={logo}
+                  alt="Logo"
+                  className="max-h-12 max-w-full object-contain opacity-90"
+                />
               </div>
             )}
             <div className="text-center">
