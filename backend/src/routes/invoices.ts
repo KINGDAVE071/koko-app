@@ -5,21 +5,24 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-const invoiceItemSchema = z.object({
+// Schéma d'item commun
+const itemSchema = z.object({
   description: z.string().optional(),
-  quantity: z.number().positive({ message: 'La quantité doit être un nombre positif' }),
-  unit_price: z.number().positive({ message: 'Le prix unitaire doit être un nombre positif' }),
+  quantity: z.number().positive(),
+  unit_price: z.number().positive(),
   tva: z.number().min(0).optional().default(0),
 });
 
+// Schéma global (tout est optionnel, validation métier plus tard)
 const invoiceSchema = z.object({
   client_name: z.string().optional(),
   type: z.enum(['facture', 'devis', 'avoir']).default('facture'),
-  date: z.string({ required_error: 'La date est requise' }),
+  date: z.string(),
   due_date: z.string().optional(),
   discount: z.number().min(0).optional().default(0),
   notes: z.string().optional(),
-  items: z.array(invoiceItemSchema).min(1, { message: 'Au moins un article est requis' }),
+  items: z.array(itemSchema).optional(),
+  total: z.number().positive().optional(),
 });
 
 router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
@@ -56,25 +59,40 @@ router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const data = invoiceSchema.parse(req.body);
 
+    // Validation métier
+    if (data.type === 'facture' && (!data.items || data.items.length === 0)) {
+      return res.status(400).json({ error: 'Une facture doit contenir au moins un article.' });
+    }
+    if (data.type === 'devis' && (!data.items || data.items.length === 0) && !data.total) {
+      return res.status(400).json({ error: 'Un devis doit contenir au moins un article ou un montant total.' });
+    }
+
     const today = new Date();
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
-    const prefix = `FACT-${year}${month}`;
+    const prefix = data.type === 'devis' ? 'DEV' : 'FACT';
+    const fullPrefix = `${prefix}-${year}${month}`;
     const count = await client.query(
       'SELECT COUNT(*)::int + 1 AS next FROM invoices WHERE user_id = $1 AND number LIKE $2',
-      [req.userId, `${prefix}%`]
+      [req.userId, `${fullPrefix}%`]
     );
     const num = String(count.rows[0].next).padStart(3, '0');
-    const number = `${prefix}-${num}`;
+    const number = `${fullPrefix}-${num}`;
 
     let totalHT = 0, totalTTC = 0;
-    for (const item of data.items) {
-      const lineHT = item.quantity * item.unit_price;
-      const lineTTC = lineHT * (1 + item.tva / 100);
-      totalHT += lineHT;
-      totalTTC += lineTTC;
+    if (data.items && data.items.length > 0) {
+      for (const item of data.items) {
+        const lineHT = item.quantity * item.unit_price;
+        const lineTTC = lineHT * (1 + item.tva / 100);
+        totalHT += lineHT;
+        totalTTC += lineTTC;
+      }
+    } else if (data.total) {
+      totalTTC = data.total;
+      totalHT = data.total; // approximation
     }
     totalTTC -= data.discount;
+    totalHT -= data.discount;
 
     await client.query('BEGIN');
 
@@ -96,12 +114,14 @@ router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
     );
     const invoiceId = invoiceResult.rows[0].id;
 
-    for (const item of data.items) {
-      await client.query(
-        `INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, tva)
-         VALUES ($1,$2,$3,$4,$5)`,
-        [invoiceId, item.description || '', item.quantity, item.unit_price, item.tva]
-      );
+    if (data.items) {
+      for (const item of data.items) {
+        await client.query(
+          `INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, tva)
+           VALUES ($1,$2,$3,$4,$5)`,
+          [invoiceId, item.description || '', item.quantity, item.unit_price, item.tva]
+        );
+      }
     }
 
     await client.query('COMMIT');
@@ -111,7 +131,6 @@ router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.issues[0].message });
     }
-    // Renvoie le message d'erreur complet pour diagnostic
     res.status(500).json({ error: error.message || 'Erreur inconnue' });
   } finally {
     client.release();
@@ -128,7 +147,7 @@ router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
       'UPDATE invoices SET status = $1 WHERE id = $2 AND user_id = $3 RETURNING *',
       [status, req.params.id, req.userId]
     );
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Facture non trouvée' });
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Document non trouvé' });
     res.json({ invoice: result.rows[0] });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Erreur serveur' });
@@ -141,8 +160,8 @@ router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) =>
       'DELETE FROM invoices WHERE id = $1 AND user_id = $2 RETURNING id',
       [req.params.id, req.userId]
     );
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Facture non trouvée' });
-    res.json({ message: 'Facture supprimée' });
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Document non trouvé' });
+    res.json({ message: 'Document supprimé' });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Erreur serveur' });
   }
