@@ -5,7 +5,7 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-async function createTables() {
+export async function createTables() {
   const client = await pool.connect();
   try {
     await client.query(`
@@ -109,19 +109,16 @@ async function createTables() {
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
     `);
-    // Ajouter les colonnes manquantes au cas où la table existait déjà
+    // Colonnes additionnelles
     await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS client_name TEXT`);
     await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS due_date TEXT`);
     await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS discount REAL DEFAULT 0`);
     await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS notes TEXT`);
     await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_terms TEXT`);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS logo TEXT`);
   } finally {
     client.release();
   }
 }
 
-createTables().catch(console.error);
 export default pool;
-
-    // Ajout colonne logo pour les utilisateurs
-    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS logo TEXT`);

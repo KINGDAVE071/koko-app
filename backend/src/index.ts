@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import pool, { createTables } from './database';
 import authRoutes from './routes/auth';
 import medicationRoutes from './routes/medications';
 import converterRoutes from './routes/converter';
@@ -53,4 +54,13 @@ app.use('/api/auth-logo', authLogoRoutes);
 app.get('/', (_req, res) => res.json({ status: 'ok', app: 'KOKO API' }));
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
-app.listen(PORT, '0.0.0.0', () => console.log(`🚀 KOKO API démarrée sur http://localhost:${PORT}`));
+
+// Initialiser la base puis démarrer
+createTables()
+  .then(() => {
+    app.listen(PORT, '0.0.0.0', () => console.log(`🚀 KOKO API démarrée sur http://localhost:${PORT}`));
+  })
+  .catch(err => {
+    console.error('Erreur création tables :', err);
+    process.exit(1);
+  });

@@ -8,6 +8,7 @@ const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const dotenv_1 = __importDefault(require("dotenv"));
+const database_1 = require("./database");
 const auth_1 = __importDefault(require("./routes/auth"));
 const medications_1 = __importDefault(require("./routes/medications"));
 const converter_1 = __importDefault(require("./routes/converter"));
@@ -18,10 +19,10 @@ const transactions_1 = __importDefault(require("./routes/transactions"));
 const business_1 = __importDefault(require("./routes/business"));
 const admin_1 = __importDefault(require("./routes/admin"));
 const promote_1 = __importDefault(require("./routes/promote"));
-const auth_logo_1 = __importDefault(require("./routes/auth-logo"));
-const invoices_1 = __importDefault(require("./routes/invoices"));
 const pharmacies_1 = __importDefault(require("./routes/pharmacies"));
 const auth_check_1 = __importDefault(require("./routes/auth-check"));
+const invoices_1 = __importDefault(require("./routes/invoices"));
+const auth_logo_1 = __importDefault(require("./routes/auth-logo"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use((0, helmet_1.default)());
@@ -46,11 +47,19 @@ app.use('/api/transactions', transactions_1.default);
 app.use('/api/business', business_1.default);
 app.use('/api/admin', admin_1.default);
 app.use('/api/promote', promote_1.default);
-app.use('/api/auth-logo', auth_logo_1.default);
-app.use('/api/invoices', invoices_1.default);
 app.use('/api/pharmacies', pharmacies_1.default);
 app.use('/api/auth-check', auth_check_1.default);
+app.use('/api/invoices', invoices_1.default);
+app.use('/api/auth-logo', auth_logo_1.default);
 app.get('/', (_req, res) => res.json({ status: 'ok', app: 'KOKO API' }));
 const PORT = parseInt(process.env.PORT || '5000', 10);
-app.listen(PORT, '0.0.0.0', () => console.log(`🚀 KOKO API démarrée sur http://localhost:${PORT}`));
+// Initialiser la base puis démarrer
+(0, database_1.createTables)()
+    .then(() => {
+    app.listen(PORT, '0.0.0.0', () => console.log(`🚀 KOKO API démarrée sur http://localhost:${PORT}`));
+})
+    .catch(err => {
+    console.error('Erreur création tables :', err);
+    process.exit(1);
+});
 //# sourceMappingURL=index.js.map

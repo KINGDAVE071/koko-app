@@ -9,7 +9,7 @@ const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 // Upload du logo (base64)
 router.put('/logo', auth_1.authMiddleware, async (req, res) => {
-    const { logo } = req.body; // base64 string
+    const { logo } = req.body;
     if (!logo)
         return res.status(400).json({ error: 'Aucune image fournie' });
     try {
