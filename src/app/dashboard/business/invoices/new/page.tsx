@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import api from '@/lib/api';
-import { PlusCircle, Trash2, FileText, Calendar, User, Banknote, Percent, StickyNote, ClipboardList } from 'lucide-react';
+import { PlusCircle, Trash2, FileText, Calendar, User, Banknote, StickyNote, ClipboardList, ArrowLeft } from 'lucide-react';
 
 interface Item {
   description: string;
@@ -15,7 +16,7 @@ interface Item {
 export default function NewInvoicePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const type = searchParams.get('type') || 'facture'; // 'facture' ou 'devis'
+  const type = searchParams.get('type') || 'facture';
 
   const [clientName, setClientName] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -23,10 +24,12 @@ export default function NewInvoicePage() {
   const [discount, setDiscount] = useState(0);
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<Item[]>([{ description: '', quantity: 1, unit_price: 0, tva: 0 }]);
-  const [totalManual, setTotalManual] = useState<number | ''>(''); // pour devis sans lignes
+  const [totalManual, setTotalManual] = useState<number | ''>('');
+  const [useManualTotal, setUseManualTotal] = useState(false);
   const [error, setError] = useState('');
 
   const isDevis = type === 'devis';
+  const backUrl = isDevis ? '/dashboard/business/quotes' : '/dashboard/business/invoices';
 
   const handleItemChange = (index: number, field: keyof Item, value: string | number) => {
     const updated = [...items];
@@ -39,7 +42,7 @@ export default function NewInvoicePage() {
 
   const totalHT = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
   const totalTTC = items.reduce((sum, item) => sum + item.quantity * item.unit_price * (1 + item.tva / 100), 0);
-  const net = isDevis && totalManual ? Number(totalManual) - discount : totalTTC - discount;
+  const net = useManualTotal && totalManual ? Number(totalManual) - discount : totalTTC - discount;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +52,7 @@ export default function NewInvoicePage() {
       return;
     }
 
-    let payload: any = {
+    const payload: any = {
       type,
       client_name: clientName.trim(),
       date,
@@ -58,9 +61,8 @@ export default function NewInvoicePage() {
       notes: notes.trim() || undefined,
     };
 
-    if (isDevis && totalManual) {
+    if (isDevis && useManualTotal && totalManual) {
       payload.total = Number(totalManual);
-      payload.items = []; // pas d'items
     } else {
       if (items.some(it => !it.description.trim())) {
         setError('Toutes les lignes doivent avoir une description.');
@@ -80,7 +82,7 @@ export default function NewInvoicePage() {
 
     try {
       await api.post('/invoices', payload);
-      router.push('/dashboard/business/invoices');
+      router.push(backUrl);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Erreur lors de la création.');
     }
@@ -88,6 +90,11 @@ export default function NewInvoicePage() {
 
   return (
     <div className="p-4 max-w-2xl mx-auto">
+      <div className="mb-4">
+        <Link href={backUrl} className="inline-flex items-center text-gray-500 hover:text-koko-orange transition-colors">
+          <ArrowLeft size={20} className="mr-1" /> Retour
+        </Link>
+      </div>
       <h1 className="text-3xl font-bold mb-6 flex items-center gap-2">
         {isDevis ? (
           <><ClipboardList className="w-7 h-7 text-blue-500" /> Nouveau devis</>
@@ -131,7 +138,7 @@ export default function NewInvoicePage() {
           </div>
         </div>
 
-        {/* Échéance (optionnelle) */}
+        {/* Échéance */}
         <div>
           <label className="block text-sm font-medium mb-1">Échéance / Validité (optionnelle)</label>
           <div className="relative">
@@ -145,27 +152,23 @@ export default function NewInvoicePage() {
           </div>
         </div>
 
-        {/* Section articles (pour facture) ou montant manuel (pour devis) */}
+        {/* Section articles (facture) ou montant manuel (devis) */}
         {isDevis ? (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={totalManual !== ''}
+                checked={useManualTotal}
                 onChange={(e) => {
-                  if (e.target.checked) {
-                    setTotalManual(0);
-                    setItems([]);
-                  } else {
-                    setTotalManual('');
-                    setItems([{ description: '', quantity: 1, unit_price: 0, tva: 0 }]);
-                  }
+                  setUseManualTotal(e.target.checked);
+                  if (e.target.checked) setItems([]);
+                  else setItems([{ description: '', quantity: 1, unit_price: 0, tva: 0 }]);
                 }}
                 className="w-4 h-4"
               />
               <label className="text-sm">Montant global (sans détails)</label>
             </div>
-            {totalManual !== '' ? (
+            {useManualTotal ? (
               <div className="relative">
                 <Banknote className="absolute left-3 top-3 text-gray-400" size={18} />
                 <input
@@ -309,11 +312,11 @@ export default function NewInvoicePage() {
 
         {/* Récapitulatif */}
         <div className="bg-white dark:bg-koko-blue p-4 rounded-xl shadow space-y-2">
-          {isDevis && totalManual ? (
+          {isDevis && useManualTotal ? (
             <>
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span>
-                <span className="text-blue-500">{Number(totalManual).toFixed(2)} FCFA</span>
+                <span className="text-blue-500">{Number(totalManual || 0).toFixed(2)} FCFA</span>
               </div>
               {discount > 0 && (
                 <div className="flex justify-between text-sm text-red-500">

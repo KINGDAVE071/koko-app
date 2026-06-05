@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
-import { FileText, Plus, Trash2, Eye, ArrowLeft } from 'lucide-react';
+import { ClipboardList, Plus, Trash2, Eye, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 interface Invoice {
@@ -15,57 +15,57 @@ interface Invoice {
   type: string;
 }
 
-export default function InvoicesPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+export default function QuotesPage() {
+  const [quotes, setQuotes] = useState<Invoice[]>([]);
 
-  const fetchInvoices = async () => {
+  const fetchQuotes = async () => {
     try {
       const res = await api.get('/invoices');
-      // Filtrer pour ne garder que les factures
-      const factures = res.data.invoices.filter((inv: Invoice) => inv.type === 'facture');
-      setInvoices(factures);
+      // Filtrer pour ne garder que les devis
+      const devis = res.data.invoices.filter((inv: Invoice) => inv.type === 'devis');
+      setQuotes(devis);
     } catch (e) {}
   };
 
-  useEffect(() => { fetchInvoices(); }, []);
+  useEffect(() => { fetchQuotes(); }, []);
 
   const handleDelete = async (id: number) => {
-    if (confirm('Supprimer cette facture ?')) {
+    if (confirm('Supprimer ce devis ?')) {
       await api.delete(`/invoices/${id}`);
-      setInvoices(invoices.filter(inv => inv.id !== id));
+      setQuotes(quotes.filter(inv => inv.id !== id));
     }
   };
 
   const handleStatusChange = async (id: number, newStatus: string) => {
     await api.put(`/invoices/${id}`, { status: newStatus });
-    fetchInvoices();
+    fetchQuotes();
   };
 
   return (
     <div className="p-4">
       <div className="flex items-center mb-4">
-        <Link href="/dashboard/business" className="mr-3 text-gray-500 hover:text-koko-orange transition-colors">
+        <Link href="/dashboard/business" className="mr-3 text-gray-500 hover:text-blue-500 transition-colors">
           <ArrowLeft size={24} />
         </Link>
-        <h1 className="text-2xl font-bold flex-1">🧾 Factures</h1>
-        <Link href="/dashboard/business/invoices/new?type=facture" className="bg-koko-orange text-white px-4 py-2 rounded-lg flex items-center text-sm">
-          <Plus size={16} className="mr-1" /> Nouvelle
+        <h1 className="text-2xl font-bold flex-1">📋 Devis</h1>
+        <Link href="/dashboard/business/invoices/new?type=devis" className="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center text-sm">
+          <Plus size={16} className="mr-1" /> Nouveau
         </Link>
       </div>
 
-      {invoices.length === 0 ? (
+      {quotes.length === 0 ? (
         <div className="text-center text-gray-500 py-12">
-          <FileText size={48} className="mx-auto mb-4 opacity-30" />
-          <p>Aucune facture pour le moment.</p>
-          <p className="text-sm mt-2">Créez votre première facture en cliquant sur « Nouvelle ».</p>
+          <ClipboardList size={48} className="mx-auto mb-4 opacity-30" />
+          <p>Aucun devis pour le moment.</p>
+          <p className="text-sm mt-2">Créez votre premier devis en cliquant sur « Nouveau ».</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {invoices.map(inv => (
+          {quotes.map(inv => (
             <div key={inv.id} className="bg-white dark:bg-koko-blue p-3 rounded-xl shadow flex justify-between items-center">
               <div>
                 <p className="font-bold flex items-center gap-2">
-                  <FileText size={16} className="text-koko-orange" />
+                  <ClipboardList size={16} className="text-blue-500" />
                   {inv.number}
                 </p>
                 <p className="text-sm text-gray-500">{inv.client_name || 'Client inconnu'} – {inv.date}</p>
@@ -87,7 +87,7 @@ export default function InvoicesPage() {
               </div>
               <div className="flex items-center space-x-3">
                 <p className="font-bold">{inv.total_ttc} FCFA</p>
-                <Link href={`/dashboard/business/invoices/${inv.id}`} className="text-koko-orange"><Eye size={18} /></Link>
+                <Link href={`/dashboard/business/invoices/${inv.id}`} className="text-blue-500"><Eye size={18} /></Link>
                 <button onClick={() => handleDelete(inv.id)} className="text-red-500"><Trash2 size={18} /></button>
               </div>
             </div>

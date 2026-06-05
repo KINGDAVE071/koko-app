@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useLanguage } from '@/i18n/LanguageContext';
 import Link from 'next/link';
-import { Package, Users, ArrowUpDown, FileText } from 'lucide-react';
+import { Package, Users, ArrowUpDown, FileText, ClipboardList } from 'lucide-react';
 
 interface DashboardData {
   productsCount: number;
@@ -43,7 +43,7 @@ export default function BusinessDashboard() {
         <div className="bg-white dark:bg-koko-blue p-4 rounded-xl shadow-koko">
           <FileText className="w-6 h-6 text-koko-orange mb-2" />
           <p className="text-2xl font-bold">{data.invoicesCount}</p>
-          <p className="text-xs text-gray-500">Factures</p>
+          <p className="text-xs text-gray-500">Documents</p>
         </div>
         <div className="bg-white dark:bg-koko-blue p-4 rounded-xl shadow-koko">
           <ArrowUpDown className="w-6 h-6 text-koko-orange mb-2" />
@@ -53,17 +53,20 @@ export default function BusinessDashboard() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
+        <Link href="/dashboard/business/invoices" className="bg-koko-orange text-white p-4 rounded-xl text-center font-semibold flex items-center justify-center gap-2">
+          <FileText size={20} /> Factures
+        </Link>
+        <Link href="/dashboard/business/quotes" className="bg-blue-500 text-white p-4 rounded-xl text-center font-semibold flex items-center justify-center gap-2">
+          <ClipboardList size={20} /> Devis
+        </Link>
         <Link href="/dashboard/business/products" className="bg-koko-orange text-white p-4 rounded-xl text-center font-semibold">
           {t('business.products')}
         </Link>
         <Link href="/dashboard/business/clients" className="bg-koko-orange text-white p-4 rounded-xl text-center font-semibold">
           {t('business.clients')}
         </Link>
-        <Link href="/dashboard/business/transactions" className="bg-koko-orange text-white p-4 rounded-xl text-center font-semibold">
+        <Link href="/dashboard/business/transactions" className="bg-koko-orange text-white p-4 rounded-xl text-center font-semibold col-span-2">
           {t('business.transactions')}
-        </Link>
-        <Link href="/dashboard/business/invoices" className="bg-koko-orange text-white p-4 rounded-xl text-center font-semibold">
-          Factures
         </Link>
       </div>
     </div>
