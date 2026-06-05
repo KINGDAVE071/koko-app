@@ -5,26 +5,23 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-// Validation d'une ligne de facture
 const invoiceItemSchema = z.object({
   description: z.string().optional(),
-  quantity: z.number().positive(),
-  unit_price: z.number().positive(),
+  quantity: z.number().positive({ message: 'La quantité doit être un nombre positif' }),
+  unit_price: z.number().positive({ message: 'Le prix unitaire doit être un nombre positif' }),
   tva: z.number().min(0).optional().default(0),
 });
 
-// Validation d'une facture complète
 const invoiceSchema = z.object({
   client_name: z.string().optional(),
   type: z.enum(['facture', 'devis', 'avoir']).default('facture'),
-  date: z.string(),
+  date: z.string({ required_error: 'La date est requise' }),
   due_date: z.string().optional(),
   discount: z.number().min(0).optional().default(0),
   notes: z.string().optional(),
-  items: z.array(invoiceItemSchema).min(1),
+  items: z.array(invoiceItemSchema).min(1, { message: 'Au moins un article est requis' }),
 });
 
-// GET /api/invoices
 router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const result = await pool.query(
@@ -33,11 +30,10 @@ router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
     );
     res.json({ invoices: result.rows });
   } catch (error) {
-    res.status(500).json({ error: 'Erreur serveur' });
+    res.status(500).json({ error: 'Erreur serveur lors de la récupération des factures' });
   }
 });
 
-// GET /api/invoices/:id
 router.get('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const invoice = await pool.query(
@@ -45,7 +41,6 @@ router.get('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
       [req.params.id, req.userId]
     );
     if (invoice.rows.length === 0) return res.status(404).json({ error: 'Facture non trouvée' });
-
     const items = await pool.query(
       'SELECT * FROM invoice_items WHERE invoice_id = $1',
       [req.params.id]
@@ -56,13 +51,11 @@ router.get('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// POST /api/invoices
 router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
   try {
     const data = invoiceSchema.parse(req.body);
 
-    // Générer un numéro de facture unique
     const today = new Date();
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -74,7 +67,6 @@ router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
     const num = String(count.rows[0].next).padStart(3, '0');
     const number = `${prefix}-${num}`;
 
-    // Calculer les totaux
     let totalHT = 0, totalTTC = 0;
     for (const item of data.items) {
       const lineHT = item.quantity * item.unit_price;
@@ -116,14 +108,16 @@ router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
     res.status(201).json({ invoice: invoiceResult.rows[0] });
   } catch (error) {
     await client.query('ROLLBACK');
-    if (error instanceof z.ZodError) return res.status(400).json({ error: error.issues[0].message });
-    res.status(500).json({ error: 'Erreur serveur' });
+    if (error instanceof z.ZodError) {
+      // Renvoie la première erreur de validation
+      return res.status(400).json({ error: error.issues[0].message });
+    }
+    res.status(500).json({ error: 'Erreur serveur lors de la création de la facture' });
   } finally {
     client.release();
   }
 });
 
-// PUT /api/invoices/:id
 router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const { status } = req.body;
@@ -141,7 +135,6 @@ router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// DELETE /api/invoices/:id
 router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const result = await pool.query(

@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useLanguage } from '@/i18n/LanguageContext';
-import { X, Eye } from 'lucide-react';
+import { X, Eye, Printer } from 'lucide-react';
 import api from '@/lib/api';
 
 interface Receipt {
@@ -26,8 +25,25 @@ interface Props {
 }
 
 export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: Props) {
-  const { t } = useLanguage();
   const [showPreview, setShowPreview] = useState(false);
+
+  const handlePrint = () => {
+    const content = document.getElementById(`receipt-${receipt.id}`);
+    if (!content) return;
+    const printWindow = window.open('', '_blank', 'width=400,height=600');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head><title>Reçu ${receipt.hash}</title></head>
+          <body style="font-family: monospace; font-size: 12px; display: flex; justify-content: center;">
+            ${content.outerHTML}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
 
   const handleDelete = async () => {
     if (confirm('Supprimer ce reçu ?')) {
@@ -43,7 +59,6 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
   return (
     <>
       <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-lg shadow-inner text-xs font-mono relative">
-        {/* Case à cocher pour sélection groupée */}
         {onSelect && (
           <input
             type="checkbox"
@@ -52,7 +67,7 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
             className="absolute top-1 left-1 w-3 h-3"
           />
         )}
-        <div className="bg-white dark:bg-gray-900 p-3 rounded text-center">
+        <div id={`receipt-${receipt.id}`} className="bg-white dark:bg-gray-900 p-3 rounded text-center">
           <p className="font-bold text-sm">KOKO - Reçu</p>
           <p className="text-gray-500">{new Date(receipt.created_at).toLocaleString()}</p>
           <hr className="my-1 border-dashed border-gray-300" />
@@ -65,17 +80,19 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
           <p className="text-gray-400">#{receipt.hash}</p>
           <p className="text-gray-400">ID: {receipt.id}</p>
         </div>
-        <div className="flex justify-between mt-1">
+        <div className="flex justify-between mt-1 gap-1">
           <button onClick={() => setShowPreview(true)} className="flex-1 py-1 bg-koko-orange text-white rounded text-xs flex items-center justify-center">
             <Eye size={12} className="mr-1" /> Aperçu
           </button>
-          <button onClick={handleDelete} className="flex-1 py-1 bg-red-500 text-white rounded text-xs ml-1">
+          <button onClick={handlePrint} className="flex-1 py-1 bg-koko-orange text-white rounded text-xs flex items-center justify-center">
+            <Printer size={12} className="mr-1" /> Imprimer
+          </button>
+          <button onClick={handleDelete} className="flex-1 py-1 bg-red-500 text-white rounded text-xs">
             <X size={12} className="inline mr-1" />Suppr.
           </button>
         </div>
       </div>
 
-      {/* Modale d'aperçu */}
       {showPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowPreview(false)}>
           <div className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-lg w-80 text-xs font-mono" onClick={e => e.stopPropagation()}>

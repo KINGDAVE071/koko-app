@@ -8,34 +8,30 @@ const zod_1 = require("zod");
 const database_1 = __importDefault(require("../database"));
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
-// Validation d'une ligne de facture
 const invoiceItemSchema = zod_1.z.object({
     description: zod_1.z.string().optional(),
-    quantity: zod_1.z.number().positive(),
-    unit_price: zod_1.z.number().positive(),
+    quantity: zod_1.z.number().positive({ message: 'La quantité doit être un nombre positif' }),
+    unit_price: zod_1.z.number().positive({ message: 'Le prix unitaire doit être un nombre positif' }),
     tva: zod_1.z.number().min(0).optional().default(0),
 });
-// Validation d'une facture complète
 const invoiceSchema = zod_1.z.object({
     client_name: zod_1.z.string().optional(),
     type: zod_1.z.enum(['facture', 'devis', 'avoir']).default('facture'),
-    date: zod_1.z.string(),
+    date: zod_1.z.string({ required_error: 'La date est requise' }),
     due_date: zod_1.z.string().optional(),
     discount: zod_1.z.number().min(0).optional().default(0),
     notes: zod_1.z.string().optional(),
-    items: zod_1.z.array(invoiceItemSchema).min(1),
+    items: zod_1.z.array(invoiceItemSchema).min(1, { message: 'Au moins un article est requis' }),
 });
-// GET /api/invoices
 router.get('/', auth_1.authMiddleware, async (req, res) => {
     try {
         const result = await database_1.default.query('SELECT * FROM invoices WHERE user_id = $1 ORDER BY created_at DESC', [req.userId]);
         res.json({ invoices: result.rows });
     }
     catch (error) {
-        res.status(500).json({ error: 'Erreur serveur' });
+        res.status(500).json({ error: 'Erreur serveur lors de la récupération des factures' });
     }
 });
-// GET /api/invoices/:id
 router.get('/:id', auth_1.authMiddleware, async (req, res) => {
     try {
         const invoice = await database_1.default.query('SELECT * FROM invoices WHERE id = $1 AND user_id = $2', [req.params.id, req.userId]);
@@ -48,12 +44,10 @@ router.get('/:id', auth_1.authMiddleware, async (req, res) => {
         res.status(500).json({ error: 'Erreur serveur' });
     }
 });
-// POST /api/invoices
 router.post('/', auth_1.authMiddleware, async (req, res) => {
     const client = await database_1.default.connect();
     try {
         const data = invoiceSchema.parse(req.body);
-        // Générer un numéro de facture unique
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -61,7 +55,6 @@ router.post('/', auth_1.authMiddleware, async (req, res) => {
         const count = await client.query('SELECT COUNT(*)::int + 1 AS next FROM invoices WHERE user_id = $1 AND number LIKE $2', [req.userId, `${prefix}%`]);
         const num = String(count.rows[0].next).padStart(3, '0');
         const number = `${prefix}-${num}`;
-        // Calculer les totaux
         let totalHT = 0, totalTTC = 0;
         for (const item of data.items) {
             const lineHT = item.quantity * item.unit_price;
@@ -94,15 +87,16 @@ router.post('/', auth_1.authMiddleware, async (req, res) => {
     }
     catch (error) {
         await client.query('ROLLBACK');
-        if (error instanceof zod_1.z.ZodError)
+        if (error instanceof zod_1.z.ZodError) {
+            // Renvoie la première erreur de validation
             return res.status(400).json({ error: error.issues[0].message });
-        res.status(500).json({ error: 'Erreur serveur' });
+        }
+        res.status(500).json({ error: 'Erreur serveur lors de la création de la facture' });
     }
     finally {
         client.release();
     }
 });
-// PUT /api/invoices/:id
 router.put('/:id', auth_1.authMiddleware, async (req, res) => {
     try {
         const { status } = req.body;
@@ -118,7 +112,6 @@ router.put('/:id', auth_1.authMiddleware, async (req, res) => {
         res.status(500).json({ error: 'Erreur serveur' });
     }
 });
-// DELETE /api/invoices/:id
 router.delete('/:id', auth_1.authMiddleware, async (req, res) => {
     try {
         const result = await database_1.default.query('DELETE FROM invoices WHERE id = $1 AND user_id = $2 RETURNING id', [req.params.id, req.userId]);
