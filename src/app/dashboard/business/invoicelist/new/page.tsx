@@ -21,7 +21,12 @@ export default function NewInvoicePage() {
   const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
   const updateItem = (i: number, field: string, value: any) => {
     const copy = [...items];
-    (copy[i] as any)[field] = value;
+    // Convertir automatiquement en nombre pour les champs numériques
+    if (['quantity', 'unit_price', 'tva'].includes(field)) {
+      (copy[i] as any)[field] = Number(value) || 0;
+    } else {
+      (copy[i] as any)[field] = value;
+    }
     setItems(copy);
   };
 
@@ -31,10 +36,22 @@ export default function NewInvoicePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Vérification que chaque item a des valeurs numériques valides
+    const validItems = items.map(it => ({
+      description: it.description,
+      quantity: Number(it.quantity),
+      unit_price: Number(it.unit_price),
+      tva: Number(it.tva),
+    }));
+    if (validItems.some(it => isNaN(it.quantity) || isNaN(it.unit_price) || it.quantity <= 0)) {
+      alert('Veuillez vérifier les quantités et prix saisis.');
+      return;
+    }
     try {
       await api.post('/invoices', {
         ...form,
-        items: items.map(it => ({ ...it, quantity: Number(it.quantity), unit_price: Number(it.unit_price) })),
+        discount: Number(form.discount),
+        items: validItems,
       });
       router.push('/dashboard/business/invoicelist');
     } catch (err: any) {
