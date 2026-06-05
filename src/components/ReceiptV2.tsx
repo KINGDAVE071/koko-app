@@ -29,6 +29,8 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
   const { user } = useAuth();
   const [showPreview, setShowPreview] = useState(false);
 
+  const logoSrc = user?.logo || null;
+
   const handlePrint = () => {
     const content = document.getElementById(`receipt-${receipt.id}`);
     if (!content) return;
@@ -36,8 +38,24 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
     if (printWindow) {
       printWindow.document.write(`
         <html>
-          <head><title>Reçu ${receipt.hash}</title></head>
-          <body style="font-family: monospace; font-size: 12px; display: flex; justify-content: center;">
+          <head>
+            <title>Reçu ${receipt.hash}</title>
+            <style>
+              @page {
+                size: 80mm auto;
+                margin: 5mm;
+              }
+              body {
+                margin: 0;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                font-family: monospace;
+                font-size: 11px;
+              }
+            </style>
+          </head>
+          <body>
             ${content.outerHTML}
           </body>
         </html>
@@ -57,8 +75,6 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
       }
     }
   };
-
-  const logoSrc = user?.logo || null;
 
   return (
     <>
