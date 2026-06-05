@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { useParams } from 'next/navigation';
 import { jsPDF } from 'jspdf';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 export default function InvoiceDetailPage() {
   const { id } = useParams();
@@ -23,7 +25,7 @@ export default function InvoiceDetailPage() {
     if (!invoice) return;
     const doc = new jsPDF();
     doc.setFontSize(16);
-    doc.text(`Facture ${invoice.number}`, 20, 20);
+    doc.text(`${invoice.type === 'devis' ? 'Devis' : 'Facture'} ${invoice.number}`, 20, 20);
     doc.setFontSize(12);
     doc.text(`Client : ${invoice.client_name || 'N/A'}`, 20, 30);
     doc.text(`Date : ${invoice.date}`, 20, 40);
@@ -34,14 +36,21 @@ export default function InvoiceDetailPage() {
       y += 10;
     });
     doc.text(`Total TTC : ${invoice.total_ttc} FCFA`, 20, y + 10);
-    doc.save(`facture_${invoice.number}.pdf`);
+    doc.save(`${invoice.number}.pdf`);
   };
 
   if (!invoice) return <div className="p-4 text-center">Chargement...</div>;
 
+  const backUrl = invoice.type === 'devis' ? '/dashboard/business/quotes' : '/dashboard/business/invoices';
+
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Facture {invoice.number}</h1>
+      <div className="flex items-center mb-4">
+        <Link href={backUrl} className="mr-3 text-gray-500 hover:text-koko-orange transition-colors">
+          <ArrowLeft size={24} />
+        </Link>
+        <h1 className="text-2xl font-bold flex-1">{invoice.type === 'devis' ? 'Devis' : 'Facture'} {invoice.number}</h1>
+      </div>
       <div className="bg-white dark:bg-koko-blue p-4 rounded-xl shadow space-y-2">
         <p><strong>Client :</strong> {invoice.client_name || 'N/A'}</p>
         <p><strong>Date :</strong> {invoice.date}</p>

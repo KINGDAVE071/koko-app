@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useLanguage } from '@/i18n/LanguageContext';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 interface Transaction {
   id: number;
@@ -60,8 +61,11 @@ export default function TransactionsPage() {
 
   return (
     <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">💰 {t('business.transactions')}</h1>
+      <div className="flex items-center mb-4">
+        <Link href="/dashboard/business" className="mr-3 text-gray-500 hover:text-koko-orange transition-colors">
+          <ArrowLeft size={24} />
+        </Link>
+        <h1 className="text-2xl font-bold flex-1">💰 {t('business.transactions')}</h1>
         <div className="flex space-x-2">
           {selectedIds.length > 0 && (
             <button onClick={handleDeleteSelected} className="px-3 py-1 bg-red-500 text-white text-sm rounded-lg">
@@ -91,28 +95,24 @@ export default function TransactionsPage() {
         </form>
       )}
 
-      <div className="space-y-2">
-        {transactions.map(tx => (
-          <div key={tx.id} className={`p-3 rounded-xl shadow-koko flex items-center ${tx.type === 'income' ? 'bg-green-50 dark:bg-green-900' : 'bg-red-50 dark:bg-red-900'}`}>
-            <input
-              type="checkbox"
-              checked={selectedIds.includes(tx.id)}
-              onChange={() => toggleSelect(tx.id)}
-              className="mr-2"
-            />
-            <div className="flex-1">
-              <p className="font-semibold">{tx.description || (tx.type === 'income' ? t('business.income') : t('business.expense'))}</p>
-              <p className="text-sm text-gray-500">{tx.date}</p>
-            </div>
-            <p className={`font-bold mr-2 ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-              {tx.type === 'income' ? '+' : '-'}{tx.amount.toLocaleString()} FCFA
-            </p>
-            <button onClick={() => handleDeleteSingle(tx.id)} className="text-red-500 hover:text-red-700">
-              <X size={16} />
-            </button>
+      {transactions.map(tx => (
+        <div key={tx.id} className={`p-3 rounded-xl shadow-koko mb-2 flex items-center ${tx.type === 'income' ? 'bg-green-50 dark:bg-green-900' : 'bg-red-50 dark:bg-red-900'}`}>
+          <input
+            type="checkbox"
+            checked={selectedIds.includes(tx.id)}
+            onChange={() => toggleSelect(tx.id)}
+            className="mr-2"
+          />
+          <div className="flex-1">
+            <p className="font-semibold">{tx.description || (tx.type === 'income' ? t('business.income') : t('business.expense'))}</p>
+            <p className="text-sm text-gray-500">{tx.date}</p>
           </div>
-        ))}
-      </div>
+          <p className={`font-bold mr-2 ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+            {tx.type === 'income' ? '+' : '-'}{tx.amount.toLocaleString()} FCFA
+          </p>
+          <button onClick={() => handleDeleteSingle(tx.id)} className="text-red-500"><X size={16} /></button>
+        </div>
+      ))}
     </div>
   );
 }

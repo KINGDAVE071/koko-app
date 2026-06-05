@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { Trash2, Shield } from 'lucide-react';
+import { Trash2, Shield, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 interface User {
   id: number;
@@ -70,7 +71,12 @@ export default function AdminPage() {
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">🛡️ Administration</h1>
+      <div className="flex items-center mb-4">
+        <Link href="/dashboard" className="mr-3 text-gray-500 hover:text-koko-orange transition-colors">
+          <ArrowLeft size={24} />
+        </Link>
+        <h1 className="text-2xl font-bold flex-1">🛡️ Administration</h1>
+      </div>
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="bg-white dark:bg-koko-blue p-4 rounded-xl shadow-koko">
           <p className="text-sm text-gray-500">Utilisateurs</p>

@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useLanguage } from '@/i18n/LanguageContext';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 interface Client {
   id: number;
@@ -41,8 +42,11 @@ export default function ClientsPage() {
 
   return (
     <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">👥 {t('business.clients')}</h1>
+      <div className="flex items-center mb-4">
+        <Link href="/dashboard/business" className="mr-3 text-gray-500 hover:text-koko-orange transition-colors">
+          <ArrowLeft size={24} />
+        </Link>
+        <h1 className="text-2xl font-bold flex-1">👥 {t('business.clients')}</h1>
         <button onClick={() => setShowAdd(!showAdd)} className="bg-koko-orange text-white p-2 rounded-lg">
           <Plus size={20} />
         </button>
