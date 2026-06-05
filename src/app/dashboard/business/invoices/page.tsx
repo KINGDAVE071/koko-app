@@ -14,19 +14,14 @@ interface Invoice {
   status: string;
 }
 
-export default function InvoiceListPage() {
+export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const fetchInvoices = async () => {
     try {
       const res = await api.get('/invoices');
       setInvoices(res.data.invoices);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) {}
   };
 
   useEffect(() => { fetchInvoices(); }, []);
@@ -38,13 +33,16 @@ export default function InvoiceListPage() {
     }
   };
 
-  if (loading) return <div className="p-4 text-center">Chargement...</div>;
+  const handleStatusChange = async (id: number, newStatus: string) => {
+    await api.put(`/invoices/${id}`, { status: newStatus });
+    fetchInvoices();
+  };
 
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">🧾 Factures</h1>
-        <Link href="/dashboard/business/invoicelist/new" className="bg-koko-orange text-white px-4 py-2 rounded-lg flex items-center text-sm">
+        <Link href="/dashboard/business/invoices/new" className="bg-koko-orange text-white px-4 py-2 rounded-lg flex items-center text-sm">
           <Plus size={16} className="mr-1" /> Nouvelle
         </Link>
       </div>
@@ -52,7 +50,7 @@ export default function InvoiceListPage() {
       {invoices.length === 0 ? (
         <div className="text-center text-gray-500 py-12">
           <p>Aucune facture pour le moment.</p>
-          <p className="text-sm mt-2">Créez votre première facture en cliquant sur « Nouvelle ».</p>
+          <p className="text-sm mt-2">Créez votre première facture en quelques clics.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -67,10 +65,19 @@ export default function InvoiceListPage() {
                 }`}>
                   {inv.status === 'paid' ? 'Payée' : inv.status === 'cancelled' ? 'Annulée' : 'En attente'}
                 </span>
+                <select
+                  value={inv.status}
+                  onChange={(e) => handleStatusChange(inv.id, e.target.value)}
+                  className="text-xs border rounded p-1 ml-2 dark:bg-gray-700"
+                >
+                  <option value="pending">En attente</option>
+                  <option value="paid">Payée</option>
+                  <option value="cancelled">Annulée</option>
+                </select>
               </div>
               <div className="flex items-center space-x-3">
                 <p className="font-bold">{inv.total_ttc} FCFA</p>
-                <Link href={`/dashboard/business/invoicelist/${inv.id}`} className="text-koko-orange"><Eye size={18} /></Link>
+                <Link href={`/dashboard/business/invoices/${inv.id}`} className="text-koko-orange"><Eye size={18} /></Link>
                 <button onClick={() => handleDelete(inv.id)} className="text-red-500"><Trash2 size={18} /></button>
               </div>
             </div>

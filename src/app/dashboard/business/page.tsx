@@ -62,7 +62,7 @@ export default function BusinessDashboard() {
         <Link href="/dashboard/business/transactions" className="bg-koko-orange text-white p-4 rounded-xl text-center font-semibold">
           {t('business.transactions')}
         </Link>
-        <Link href="/dashboard/business/invoicelist" className="bg-koko-orange text-white p-4 rounded-xl text-center font-semibold">
+        <Link href="/dashboard/business/invoices" className="bg-koko-orange text-white p-4 rounded-xl text-center font-semibold">
           Factures
         </Link>
       </div>

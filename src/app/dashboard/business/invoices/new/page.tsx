@@ -17,16 +17,9 @@ export default function NewInvoicePage() {
   });
   const [items, setItems] = useState([{ description: '', quantity: 1, unit_price: 0, tva: 0 }]);
 
-  const addItem = () => setItems([...items, { description: '', quantity: 1, unit_price: 0, tva: 0 }]);
-  const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
   const updateItem = (i: number, field: string, value: any) => {
     const copy = [...items];
-    // Convertir automatiquement en nombre pour les champs numériques
-    if (['quantity', 'unit_price', 'tva'].includes(field)) {
-      (copy[i] as any)[field] = Number(value) || 0;
-    } else {
-      (copy[i] as any)[field] = value;
-    }
+    (copy[i] as any)[field] = value;
     setItems(copy);
   };
 
@@ -36,24 +29,19 @@ export default function NewInvoicePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Vérification que chaque item a des valeurs numériques valides
-    const validItems = items.map(it => ({
-      description: it.description,
-      quantity: Number(it.quantity),
-      unit_price: Number(it.unit_price),
-      tva: Number(it.tva),
-    }));
-    if (validItems.some(it => isNaN(it.quantity) || isNaN(it.unit_price) || it.quantity <= 0)) {
-      alert('Veuillez vérifier les quantités et prix saisis.');
-      return;
-    }
+    const payload = {
+      ...form,
+      discount: Number(form.discount),
+      items: items.map(it => ({
+        description: it.description,
+        quantity: Number(it.quantity),
+        unit_price: Number(it.unit_price),
+        tva: Number(it.tva),
+      })),
+    };
     try {
-      await api.post('/invoices', {
-        ...form,
-        discount: Number(form.discount),
-        items: validItems,
-      });
-      router.push('/dashboard/business/invoicelist');
+      await api.post('/invoices', payload);
+      router.push('/dashboard/business/invoices');
     } catch (err: any) {
       alert(err.response?.data?.error || 'Erreur');
     }
@@ -75,10 +63,10 @@ export default function NewInvoicePage() {
             <input type="number" placeholder="Qté" value={item.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} className="w-16 border rounded p-2 dark:bg-gray-700" min="1" />
             <input type="number" placeholder="Prix" value={item.unit_price} onChange={e => updateItem(i, 'unit_price', e.target.value)} className="w-24 border rounded p-2 dark:bg-gray-700" min="0" />
             <input type="number" placeholder="TVA%" value={item.tva} onChange={e => updateItem(i, 'tva', e.target.value)} className="w-16 border rounded p-2 dark:bg-gray-700" />
-            <button type="button" onClick={() => removeItem(i)} className="text-red-500"><Trash2 size={16} /></button>
+            <button type="button" onClick={() => setItems(items.filter((_, idx) => idx !== i))} className="text-red-500"><Trash2 size={16} /></button>
           </div>
         ))}
-        <button type="button" onClick={addItem} className="flex items-center text-koko-orange"><PlusCircle size={16} className="mr-1" /> Ajouter une ligne</button>
+        <button type="button" onClick={() => setItems([...items, { description: '', quantity: 1, unit_price: 0, tva: 0 }])} className="flex items-center text-koko-orange"><PlusCircle size={16} className="mr-1" /> Ajouter une ligne</button>
 
         <div className="flex space-x-2">
           <input type="number" placeholder="Remise (FCFA)" value={form.discount} onChange={e => setForm({...form, discount: Number(e.target.value)})} className="border rounded-lg p-2 dark:bg-gray-700" />
