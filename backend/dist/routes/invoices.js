@@ -29,7 +29,7 @@ router.get('/', auth_1.authMiddleware, async (req, res) => {
         res.json({ invoices: result.rows });
     }
     catch (error) {
-        res.status(500).json({ error: 'Erreur serveur lors de la récupération des factures' });
+        res.status(500).json({ error: error.message || 'Erreur serveur' });
     }
 });
 router.get('/:id', auth_1.authMiddleware, async (req, res) => {
@@ -41,7 +41,7 @@ router.get('/:id', auth_1.authMiddleware, async (req, res) => {
         res.json({ invoice: invoice.rows[0], items: items.rows });
     }
     catch (error) {
-        res.status(500).json({ error: 'Erreur serveur' });
+        res.status(500).json({ error: error.message || 'Erreur serveur' });
     }
 });
 router.post('/', auth_1.authMiddleware, async (req, res) => {
@@ -88,10 +88,10 @@ router.post('/', auth_1.authMiddleware, async (req, res) => {
     catch (error) {
         await client.query('ROLLBACK');
         if (error instanceof zod_1.z.ZodError) {
-            // Renvoie la première erreur de validation
             return res.status(400).json({ error: error.issues[0].message });
         }
-        res.status(500).json({ error: 'Erreur serveur lors de la création de la facture' });
+        // Renvoie le message d'erreur complet pour diagnostic
+        res.status(500).json({ error: error.message || 'Erreur inconnue' });
     }
     finally {
         client.release();
@@ -109,7 +109,7 @@ router.put('/:id', auth_1.authMiddleware, async (req, res) => {
         res.json({ invoice: result.rows[0] });
     }
     catch (error) {
-        res.status(500).json({ error: 'Erreur serveur' });
+        res.status(500).json({ error: error.message || 'Erreur serveur' });
     }
 });
 router.delete('/:id', auth_1.authMiddleware, async (req, res) => {
@@ -120,7 +120,7 @@ router.delete('/:id', auth_1.authMiddleware, async (req, res) => {
         res.json({ message: 'Facture supprimée' });
     }
     catch (error) {
-        res.status(500).json({ error: 'Erreur serveur' });
+        res.status(500).json({ error: error.message || 'Erreur serveur' });
     }
 });
 exports.default = router;

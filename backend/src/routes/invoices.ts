@@ -29,8 +29,8 @@ router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
       [req.userId]
     );
     res.json({ invoices: result.rows });
-  } catch (error) {
-    res.status(500).json({ error: 'Erreur serveur lors de la récupération des factures' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Erreur serveur' });
   }
 });
 
@@ -46,8 +46,8 @@ router.get('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
       [req.params.id]
     );
     res.json({ invoice: invoice.rows[0], items: items.rows });
-  } catch (error) {
-    res.status(500).json({ error: 'Erreur serveur' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Erreur serveur' });
   }
 });
 
@@ -106,13 +106,13 @@ router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
 
     await client.query('COMMIT');
     res.status(201).json({ invoice: invoiceResult.rows[0] });
-  } catch (error) {
+  } catch (error: any) {
     await client.query('ROLLBACK');
     if (error instanceof z.ZodError) {
-      // Renvoie la première erreur de validation
       return res.status(400).json({ error: error.issues[0].message });
     }
-    res.status(500).json({ error: 'Erreur serveur lors de la création de la facture' });
+    // Renvoie le message d'erreur complet pour diagnostic
+    res.status(500).json({ error: error.message || 'Erreur inconnue' });
   } finally {
     client.release();
   }
@@ -130,8 +130,8 @@ router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Facture non trouvée' });
     res.json({ invoice: result.rows[0] });
-  } catch (error) {
-    res.status(500).json({ error: 'Erreur serveur' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Erreur serveur' });
   }
 });
 
@@ -143,8 +143,8 @@ router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) =>
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Facture non trouvée' });
     res.json({ message: 'Facture supprimée' });
-  } catch (error) {
-    res.status(500).json({ error: 'Erreur serveur' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Erreur serveur' });
   }
 });
 
