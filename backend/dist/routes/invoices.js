@@ -8,27 +8,24 @@ const zod_1 = require("zod");
 const database_1 = __importDefault(require("../database"));
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
-// Schéma de validation pour une ligne de facture
-const itemSchema = zod_1.z.object({
-    product_id: zod_1.z.number().optional(),
+// Validation d'une ligne de facture
+const invoiceItemSchema = zod_1.z.object({
     description: zod_1.z.string().optional(),
     quantity: zod_1.z.number().positive(),
     unit_price: zod_1.z.number().positive(),
-    tva: zod_1.z.number().min(0).max(100).optional().default(0),
+    tva: zod_1.z.number().min(0).optional().default(0),
 });
-// Schéma de création d'une facture
+// Validation d'une facture complète
 const invoiceSchema = zod_1.z.object({
-    client_id: zod_1.z.number().optional(),
     client_name: zod_1.z.string().optional(),
-    type: zod_1.z.enum(['devis', 'facture', 'avoir']).default('facture'),
-    date: zod_1.z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    due_date: zod_1.z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    type: zod_1.z.enum(['facture', 'devis', 'avoir']).default('facture'),
+    date: zod_1.z.string(),
+    due_date: zod_1.z.string().optional(),
     discount: zod_1.z.number().min(0).optional().default(0),
     notes: zod_1.z.string().optional(),
-    payment_terms: zod_1.z.string().optional(),
-    items: zod_1.z.array(itemSchema).min(1, 'Au moins un article est requis'),
+    items: zod_1.z.array(invoiceItemSchema).min(1),
 });
-// GET /api/invoices – Liste des factures de l'utilisateur
+// GET /api/invoices
 router.get('/', auth_1.authMiddleware, async (req, res) => {
     try {
         const result = await database_1.default.query('SELECT * FROM invoices WHERE user_id = $1 ORDER BY created_at DESC', [req.userId]);
@@ -38,7 +35,7 @@ router.get('/', auth_1.authMiddleware, async (req, res) => {
         res.status(500).json({ error: 'Erreur serveur' });
     }
 });
-// GET /api/invoices/:id – Détail d'une facture avec ses items
+// GET /api/invoices/:id
 router.get('/:id', auth_1.authMiddleware, async (req, res) => {
     try {
         const invoice = await database_1.default.query('SELECT * FROM invoices WHERE id = $1 AND user_id = $2', [req.params.id, req.userId]);
@@ -51,33 +48,32 @@ router.get('/:id', auth_1.authMiddleware, async (req, res) => {
         res.status(500).json({ error: 'Erreur serveur' });
     }
 });
-// POST /api/invoices – Créer une facture
+// POST /api/invoices
 router.post('/', auth_1.authMiddleware, async (req, res) => {
     const client = await database_1.default.connect();
     try {
         const data = invoiceSchema.parse(req.body);
-        // Calcul des totaux
-        let totalHT = 0;
-        let totalTTC = 0;
+        // Générer un numéro de facture unique
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const prefix = `FACT-${year}${month}`;
+        const count = await client.query('SELECT COUNT(*)::int + 1 AS next FROM invoices WHERE user_id = $1 AND number LIKE $2', [req.userId, `${prefix}%`]);
+        const num = String(count.rows[0].next).padStart(3, '0');
+        const number = `${prefix}-${num}`;
+        // Calculer les totaux
+        let totalHT = 0, totalTTC = 0;
         for (const item of data.items) {
             const lineHT = item.quantity * item.unit_price;
             const lineTTC = lineHT * (1 + item.tva / 100);
             totalHT += lineHT;
             totalTTC += lineTTC;
         }
-        // Appliquer la remise globale (en % ou valeur ? On suppose un montant)
         totalTTC -= data.discount;
-        totalHT -= data.discount / (1 + (data.items[0]?.tva || 0) / 100); // approximation
         await client.query('BEGIN');
-        // Générer un numéro de facture unique : FACT-YYYYMMDD-XXXX
-        const dateStr = data.date.replace(/-/g, '');
-        const countResult = await client.query("SELECT COUNT(*)::int + 1 as next FROM invoices WHERE user_id = $1 AND date LIKE $2", [req.userId, data.date.substring(0, 7) + '%']);
-        const nextNum = countResult.rows[0].next;
-        const number = `FACT-${dateStr}-${String(nextNum).padStart(4, '0')}`;
-        const invoiceResult = await client.query(`INSERT INTO invoices (user_id, client_id, client_name, type, number, date, due_date, total_ht, total_ttc, discount, notes, payment_terms)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`, [
+        const invoiceResult = await client.query(`INSERT INTO invoices (user_id, client_name, type, number, date, due_date, total_ht, total_ttc, discount, notes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`, [
             req.userId,
-            data.client_id || null,
             data.client_name || null,
             data.type,
             number,
@@ -87,13 +83,11 @@ router.post('/', auth_1.authMiddleware, async (req, res) => {
             Math.round(totalTTC * 100) / 100,
             data.discount,
             data.notes || null,
-            data.payment_terms || null,
         ]);
         const invoiceId = invoiceResult.rows[0].id;
-        // Insérer les items
         for (const item of data.items) {
-            await client.query(`INSERT INTO invoice_items (invoice_id, product_id, description, quantity, unit_price, tva)
-         VALUES ($1,$2,$3,$4,$5,$6)`, [invoiceId, item.product_id || null, item.description || '', item.quantity, item.unit_price, item.tva]);
+            await client.query(`INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, tva)
+         VALUES ($1,$2,$3,$4,$5)`, [invoiceId, item.description || '', item.quantity, item.unit_price, item.tva]);
         }
         await client.query('COMMIT');
         res.status(201).json({ invoice: invoiceResult.rows[0] });
@@ -108,7 +102,7 @@ router.post('/', auth_1.authMiddleware, async (req, res) => {
         client.release();
     }
 });
-// PUT /api/invoices/:id – Modifier le statut
+// PUT /api/invoices/:id
 router.put('/:id', auth_1.authMiddleware, async (req, res) => {
     try {
         const { status } = req.body;
