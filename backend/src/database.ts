@@ -109,6 +109,12 @@ async function createTables() {
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
     `);
+    // Ajouter les colonnes manquantes au cas où la table existait déjà
+    await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS client_name TEXT`);
+    await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS due_date TEXT`);
+    await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS discount REAL DEFAULT 0`);
+    await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS notes TEXT`);
+    await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_terms TEXT`);
   } finally {
     client.release();
   }
