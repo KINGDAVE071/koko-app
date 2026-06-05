@@ -32,19 +32,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Initialisation : restauration de la session + logo
   useEffect(() => {
     const storedToken = localStorage.getItem('koko_token');
     const storedUser = localStorage.getItem('koko_user');
     if (storedToken && storedUser) {
       try {
+        const parsedUser = JSON.parse(storedUser);
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        setUser(parsedUser);
+        // Recharger le logo depuis le serveur (au cas où il a changé)
+        api.get('/auth-logo/logo')
+          .then(res => {
+            if (res.data.logo !== undefined) {
+              const updatedUser = { ...parsedUser, logo: res.data.logo };
+              setUser(updatedUser);
+              localStorage.setItem('koko_user', JSON.stringify(updatedUser));
+            }
+          })
+          .catch(() => {}) // silencieux si échec
+          .finally(() => setLoading(false));
       } catch (e) {
         localStorage.removeItem('koko_token');
         localStorage.removeItem('koko_user');
+        setLoading(false);
       }
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -81,20 +96,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const refreshUser = async () => {
-    if (token) {
+    if (!token) return;
+    try {
+      const res = await api.get('/auth/me');
+      const updatedUser = res.data.user;
+      let logo = undefined;
       try {
-        const res = await api.get('/auth/me');
-        const updatedUser = res.data.user;
-        let logo = undefined;
-        try {
-          const logoRes = await api.get('/auth-logo/logo');
-          logo = logoRes.data.logo;
-        } catch (e) {}
-        const fullUser = { ...updatedUser, logo };
-        setUser(fullUser);
-        localStorage.setItem('koko_user', JSON.stringify(fullUser));
+        const logoRes = await api.get('/auth-logo/logo');
+        logo = logoRes.data.logo;
       } catch (e) {}
-    }
+      const fullUser = { ...updatedUser, logo };
+      setUser(fullUser);
+      localStorage.setItem('koko_user', JSON.stringify(fullUser));
+    } catch (e) {}
   };
 
   return (
