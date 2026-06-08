@@ -6,7 +6,7 @@ import { ClipboardList, Plus, Trash2, Eye, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useQuotes } from '@/hooks/useKokoData';
 
-interface Quote {
+interface Invoice {
   id: number;
   number: string;
   client_name: string;
@@ -18,6 +18,7 @@ interface Quote {
 
 export default function QuotesPage() {
   const { quotes, isLoading, mutate } = useQuotes();
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const handleDelete = async (id: number) => {
     if (confirm('Supprimer ce devis ?')) {
@@ -53,7 +54,7 @@ export default function QuotesPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {quotes.map(inv => (
+          {quotes.map((inv: Invoice) => (
             <div key={inv.id} className="bg-white dark:bg-koko-blue p-3 rounded-xl shadow flex justify-between items-center">
               <div>
                 <p className="font-bold flex items-center gap-2">
