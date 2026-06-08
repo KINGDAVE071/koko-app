@@ -66,7 +66,7 @@ export default function AdminPage() {
       <div className="bg-white dark:bg-koko-blue rounded-2xl p-5 shadow-koko">
         <h2 className="text-lg font-bold mb-3">Liste des utilisateurs</h2>
         <div className="space-y-2">
-          {users.map(u => (
+          {users.map((u: User) => (
             <div key={u.id} className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 py-2">
               <div>
                 <p className="font-medium">{u.name} {u.role === 'admin' && <Shield className="inline w-4 h-4 text-koko-orange" />}</p>
