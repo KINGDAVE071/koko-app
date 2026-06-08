@@ -4,15 +4,9 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/i18n/LanguageContext';
-import { Plus, Trash2, MapPin, Bell, BellRing, Check } from 'lucide-react';
-import PremiumGate from '@/components/PremiumGate';
+import { Plus, Trash2, MapPin, Bell, Check } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-
-interface MedicationTime {
-  time: string;
-  taken?: boolean;
-}
 
 interface Medication {
   id: number;
@@ -34,7 +28,6 @@ export default function DashboardPage() {
     times: ['08:00'],
     start_date: new Date().toISOString().split('T')[0]
   });
-  const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
 
   const fetchMeds = useCallback(async () => {
     try {
@@ -46,15 +39,9 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchMeds(); }, [fetchMeds]);
 
-  // Demander la permission de notification au montage
-  useEffect(() => {
-    if (Notification.permission === 'default') {
-      Notification.requestPermission().then(perm => setNotificationPermission(perm));
-    }
-  }, []);
-
   // Vérifier les heures de prise toutes les 30 secondes et notifier
   useEffect(() => {
+    if (Notification.permission !== 'granted') return;
     const interval = setInterval(() => {
       const now = new Date();
       const currentTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
@@ -62,14 +49,10 @@ export default function DashboardPage() {
       medications.forEach(med => {
         med.times.forEach(time => {
           if (time === currentTime && !med.logs[time]) {
-            // Notifier
-            if (Notification.permission === 'granted') {
-              new Notification('💊 Rappel de prise', {
-                body: `Il est l'heure de prendre : ${med.name} ${med.dosage ? `(${med.dosage})` : ''}`,
-                icon: '/icons/icon-192x192.png',
-                vibrate: [200, 100, 200],
-              });
-            }
+            new Notification('💊 Rappel de prise', {
+              body: `Il est l'heure de prendre : ${med.name} ${med.dosage ? `(${med.dosage})` : ''}`,
+              icon: '/icons/icon-192x192.png',
+            });
             toast.info(`🕐 C'est l'heure de prendre ${med.name} !`);
           }
         });
