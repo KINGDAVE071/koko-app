@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -8,7 +8,7 @@ import { useLanguage } from '@/i18n/LanguageContext';
 import { toast } from 'sonner';
 import { Eye, EyeOff } from 'lucide-react';
 
-export default function RegisterPage() {
+function RegisterForm() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -106,5 +106,20 @@ export default function RegisterPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-koko-cream dark:bg-koko-cream-dark">
+        <div className="text-center">
+          <div className="animate-spin text-4xl mb-2">🌅</div>
+          <p className="text-gray-500">Chargement...</p>
+        </div>
+      </div>
+    }>
+      <RegisterForm />
+    </Suspense>
   );
 }
