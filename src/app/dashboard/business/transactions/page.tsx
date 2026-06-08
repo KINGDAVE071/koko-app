@@ -89,7 +89,7 @@ export default function TransactionsPage() {
         </form>
       )}
 
-      {transactions.map(tx => (
+      {transactions.map((tx: Transaction) => (
         <div key={tx.id} className={`p-3 rounded-xl shadow-koko mb-2 flex items-center ${tx.type === 'income' ? 'bg-green-50 dark:bg-green-900' : 'bg-red-50 dark:bg-red-900'}`}>
           <input
             type="checkbox"

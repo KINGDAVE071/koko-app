@@ -61,7 +61,7 @@ export default function ClientsPage() {
         </form>
       )}
 
-      {clients.map(c => (
+      {clients.map((c: Client) => (
         <div key={c.id} className="bg-white dark:bg-koko-blue p-3 rounded-xl shadow-koko mb-2 flex justify-between items-center">
           <div>
             <p className="font-semibold">{c.name} <span className="text-xs text-gray-400">({c.type})</span></p>
