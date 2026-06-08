@@ -17,6 +17,7 @@ export async function createTables() {
         language TEXT DEFAULT 'fr',
         role TEXT DEFAULT 'user',
         premium_until TIMESTAMPTZ,
+        logo TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
       CREATE TABLE IF NOT EXISTS medications (
@@ -25,12 +26,25 @@ export async function createTables() {
         name TEXT NOT NULL,
         dosage TEXT,
         frequency TEXT NOT NULL,
-        time TEXT NOT NULL,
         start_date TEXT NOT NULL,
         end_date TEXT,
         active INTEGER DEFAULT 1,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+      CREATE TABLE IF NOT EXISTS medication_times (
+        id SERIAL PRIMARY KEY,
+        medication_id INTEGER NOT NULL REFERENCES medications(id) ON DELETE CASCADE,
+        time TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS medication_logs (
+        id SERIAL PRIMARY KEY,
+        medication_id INTEGER NOT NULL REFERENCES medications(id) ON DELETE CASCADE,
+        date TEXT NOT NULL,
+        time TEXT NOT NULL,
+        taken BOOLEAN DEFAULT false,
+        UNIQUE(medication_id, date, time)
+      );
+      -- autres tables inchangées (conversion_rates, receipts, products, clients, invoices, invoice_items, transactions)
       CREATE TABLE IF NOT EXISTS conversion_rates (
         id SERIAL PRIMARY KEY,
         from_currency TEXT NOT NULL,
@@ -109,7 +123,6 @@ export async function createTables() {
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
     `);
-    // Colonnes additionnelles
     await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS client_name TEXT`);
     await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS due_date TEXT`);
     await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS discount REAL DEFAULT 0`);

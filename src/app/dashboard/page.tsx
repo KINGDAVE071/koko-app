@@ -1,45 +1,115 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/i18n/LanguageContext';
-import { Plus, Trash2, MapPin } from 'lucide-react';
+import { Plus, Trash2, MapPin, Bell, BellRing, Check } from 'lucide-react';
 import PremiumGate from '@/components/PremiumGate';
 import Link from 'next/link';
-import { useMedications } from '@/hooks/useKokoData';
+import { toast } from 'sonner';
+
+interface MedicationTime {
+  time: string;
+  taken?: boolean;
+}
 
 interface Medication {
   id: number;
   name: string;
   dosage?: string;
-  time: string;
   frequency: string;
-  active: number;
+  times: string[];
+  logs: Record<string, boolean>;
 }
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const { t, lang } = useLanguage();
-  const { medications, isLoading, mutate } = useMedications();
+  const [medications, setMedications] = useState<Medication[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [newMed, setNewMed] = useState({ name: '', dosage: '', time: '08:00', frequency: 'daily', start_date: new Date().toISOString().split('T')[0] });
+  const [newMed, setNewMed] = useState({
+    name: '', dosage: '', frequency: 'daily',
+    times: ['08:00'],
+    start_date: new Date().toISOString().split('T')[0]
+  });
+  const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
 
-  const handleAdd = async (e: React.FormEvent) => {
+  const fetchMeds = useCallback(async () => {
+    try {
+      const res = await api.get('/medications');
+      setMedications(res.data.medications);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchMeds(); }, [fetchMeds]);
+
+  // Demander la permission de notification au montage
+  useEffect(() => {
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().then(perm => setNotificationPermission(perm));
+    }
+  }, []);
+
+  // Vérifier les heures de prise toutes les 30 secondes et notifier
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      const currentTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      const today = now.toISOString().split('T')[0];
+      medications.forEach(med => {
+        med.times.forEach(time => {
+          if (time === currentTime && !med.logs[time]) {
+            // Notifier
+            if (Notification.permission === 'granted') {
+              new Notification('💊 Rappel de prise', {
+                body: `Il est l'heure de prendre : ${med.name} ${med.dosage ? `(${med.dosage})` : ''}`,
+                icon: '/icons/icon-192x192.png',
+                vibrate: [200, 100, 200],
+              });
+            }
+            toast.info(`🕐 C'est l'heure de prendre ${med.name} !`);
+          }
+        });
+      });
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [medications]);
+
+  // Ajouter un médicament
+  const handleAddMed = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await api.post('/medications', newMed);
       setShowAdd(false);
-      setNewMed({ name: '', dosage: '', time: '08:00', frequency: 'daily', start_date: new Date().toISOString().split('T')[0] });
-      mutate();
-    } catch (err) {
-      console.error(err);
+      setNewMed({ name: '', dosage: '', frequency: 'daily', times: ['08:00'], start_date: new Date().toISOString().split('T')[0] });
+      fetchMeds();
+      toast.success('Médicament ajouté !');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Erreur');
     }
   };
 
+  // Marquer une prise
+  const handleTake = async (medId: number, time: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    await api.post(`/medications/${medId}/take`, { date: today, time });
+    fetchMeds();
+  };
+
+  // Supprimer (désactiver)
   const handleDelete = async (id: number) => {
     await api.delete(`/medications/${id}`);
-    mutate();
+    fetchMeds();
+  };
+
+  // Ajouter/supprimer une heure dans le formulaire
+  const addTime = () => setNewMed({...newMed, times: [...newMed.times, '08:00']});
+  const removeTime = (index: number) => {
+    const updated = newMed.times.filter((_, i) => i !== index);
+    setNewMed({...newMed, times: updated.length ? updated : ['08:00']});
   };
 
   const welcomeMessage = t('dashboard.welcome').replace('{name}', user?.name || '');
@@ -53,40 +123,86 @@ export default function DashboardPage() {
       </Link>
 
       <div className="bg-white dark:bg-koko-blue rounded-2xl p-5 shadow-koko mb-4">
-        <h2 className="text-lg font-bold mb-3">💊 {t('dashboard.pilulier')}</h2>
-        {isLoading && <p className="text-gray-500">Chargement...</p>}
-        {!isLoading && medications.length === 0 && <p className="text-gray-500">{t('dashboard.noMeds')}</p>}
-        {medications.map((med: Medication) => (
-          <div key={med.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
-            <div>
-              <p className="font-medium">{med.name} {med.dosage && `(${med.dosage})`}</p>
-              <p className="text-sm text-gray-500">{med.time} - {med.frequency}</p>
-            </div>
-            <button onClick={() => handleDelete(med.id)} className="text-red-500"><Trash2 size={18} /></button>
-          </div>
-        ))}
-
-        <PremiumGate featureName="Ajouter plus de 3 médicaments">
-          <button onClick={() => setShowAdd(!showAdd)} className="mt-3 flex items-center text-koko-orange font-medium">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-lg font-bold">💊 {t('dashboard.pilulier')}</h2>
+          <button onClick={() => setShowAdd(!showAdd)} className="flex items-center text-koko-orange font-medium">
             <Plus size={18} className="mr-1" /> {t('dashboard.addMed')}
           </button>
-        </PremiumGate>
+        </div>
 
-        {showAdd && (
-          <form onSubmit={handleAdd} className="mt-4 space-y-3">
-            <input type="text" placeholder="Nom" value={newMed.name} onChange={e => setNewMed({...newMed, name: e.target.value})} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:text-white" required />
-            <input type="text" placeholder="Dosage (ex: 100mg)" value={newMed.dosage} onChange={e => setNewMed({...newMed, dosage: e.target.value})} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:text-white" />
-            <input type="time" value={newMed.time} onChange={e => setNewMed({...newMed, time: e.target.value})} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:text-white" />
-            <select value={newMed.frequency} onChange={e => setNewMed({...newMed, frequency: e.target.value})} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:text-white">
-              <option value="daily">Quotidien</option>
-              <option value="twice_daily">2x/jour</option>
-              <option value="three_times_daily">3x/jour</option>
-              <option value="weekly">Hebdomadaire</option>
-            </select>
-            <button type="submit" className="w-full py-2 bg-koko-orange text-white rounded-lg">Enregistrer</button>
-          </form>
-        )}
+        {loading && <p className="text-gray-500">Chargement...</p>}
+        {!loading && medications.length === 0 && <p className="text-gray-500">{t('dashboard.noMeds')}</p>}
+
+        {medications.map(med => (
+          <div key={med.id} className="border-b border-gray-100 dark:border-gray-700 py-3 last:border-0">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="font-semibold text-lg">{med.name} {med.dosage && <span className="text-sm text-gray-500">({med.dosage})</span>}</p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {med.times.map((time, idx) => {
+                    const taken = med.logs[time] || false;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => handleTake(med.id, time)}
+                        disabled={taken}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                          taken
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 cursor-default'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-green-100'
+                        }`}
+                      >
+                        {taken ? <Check size={14} /> : <Bell size={14} />}
+                        {time}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <button onClick={() => handleDelete(med.id)} className="text-red-500 ml-2"><Trash2 size={18} /></button>
+            </div>
+          </div>
+        ))}
       </div>
+
+      {/* Formulaire d'ajout */}
+      {showAdd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-koko-blue p-5 rounded-2xl shadow-lg w-full max-w-md mx-4">
+            <h3 className="text-lg font-bold mb-4">Ajouter un médicament</h3>
+            <form onSubmit={handleAddMed} className="space-y-3">
+              <input type="text" placeholder="Nom" value={newMed.name} onChange={e => setNewMed({...newMed, name: e.target.value})} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:text-white" required />
+              <input type="text" placeholder="Dosage (ex: 100mg)" value={newMed.dosage} onChange={e => setNewMed({...newMed, dosage: e.target.value})} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:text-white" />
+              <select value={newMed.frequency} onChange={e => setNewMed({...newMed, frequency: e.target.value})} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:text-white">
+                <option value="daily">Quotidien</option>
+                <option value="twice_daily">2x/jour</option>
+                <option value="three_times_daily">3x/jour</option>
+                <option value="weekly">Hebdomadaire</option>
+                <option value="custom">Personnalisé</option>
+              </select>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Heures de prise</label>
+                {newMed.times.map((time, idx) => (
+                  <div key={idx} className="flex items-center gap-2 mb-2">
+                    <input type="time" value={time} onChange={e => {
+                      const updated = [...newMed.times];
+                      updated[idx] = e.target.value;
+                      setNewMed({...newMed, times: updated});
+                    }} className="flex-1 p-2 border rounded-lg dark:bg-gray-700 dark:text-white" />
+                    {newMed.times.length > 1 && <button type="button" onClick={() => removeTime(idx)} className="text-red-500"><Trash2 size={16} /></button>}
+                  </div>
+                ))}
+                <button type="button" onClick={addTime} className="text-sm text-koko-orange">+ Ajouter une heure</button>
+              </div>
+              <input type="date" value={newMed.start_date} onChange={e => setNewMed({...newMed, start_date: e.target.value})} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:text-white" />
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setShowAdd(false)} className="flex-1 py-2 border rounded-lg">Annuler</button>
+                <button type="submit" className="flex-1 py-2 bg-koko-orange text-white rounded-lg">Enregistrer</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
