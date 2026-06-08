@@ -2,6 +2,14 @@ import { Router, Request, Response } from 'express';
 
 const router = Router();
 
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 router.post('/', async (req: Request, res: Response) => {
   const { lat, lon } = req.body;
   if (typeof lat !== 'number' || typeof lon !== 'number') {
@@ -17,7 +25,7 @@ router.post('/', async (req: Request, res: Response) => {
   const timeout = setTimeout(() => controller.abort(), 8000);
 
   try {
-    const url = `https://api.geoapify.com/v2/places?categories=healthcare.pharmacy&filter=circle:${lon},${lat},5000&limit=20&apiKey=${apiKey}`;
+    const url = `https://api.geoapify.com/v2/places?categories=healthcare.pharmacy&filter=circle:${lon},${lat},5000&limit=50&apiKey=${apiKey}`;
     const response = await fetch(url, { signal: controller.signal });
 
     if (!response.ok) {
@@ -26,25 +34,28 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     const data: any = await response.json();
-    const pharmacies = (data.features || []).map((feature: any) => {
+    const rawPharmacies = (data.features || []).map((feature: any) => {
       const props = feature.properties;
       const coords = feature.geometry.coordinates;
-      const distanceInKm = props.distance ? props.distance / 1000 : undefined;
+      const distanceInKm = haversineDistance(lat, lon, coords[1], coords[0]);
       return {
         id: props.place_id,
         name: props.name || 'Pharmacie',
         lat: coords[1],
         lon: coords[0],
-        distance: distanceInKm ? Math.round(distanceInKm * 10) / 10 : undefined,
+        distance: Math.round(distanceInKm * 10) / 10,
         duration: undefined,
-        isAirDistance: false,
+        isAirDistance: true,
         address: props.formatted,
         phone: props.phone,
         openingHours: props.opening_hours,
       };
     });
 
-    pharmacies.sort((a: any, b: any) => (a.distance || 9999) - (b.distance || 9999));
+    // Filtrer strictement à 5 km
+    const pharmacies = rawPharmacies.filter((p: any) => p.distance <= 5);
+    pharmacies.sort((a: any, b: any) => a.distance - b.distance);
+
     res.json({ pharmacies });
   } catch (error: any) {
     if (error.name === 'AbortError') {
