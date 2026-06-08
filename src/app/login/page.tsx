@@ -5,13 +5,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/i18n/LanguageContext';
-import { signIn } from 'next-auth/react';
+import { Eye, EyeOff } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuth();
   const router = useRouter();
@@ -50,20 +51,30 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
-          <input
-            type="password"
-            placeholder={t('login.password') || 'Mot de passe'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              placeholder={t('login.password') || 'Mot de passe'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              tabIndex={-1}
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
           <button onClick={handleClick} className="w-full py-3 bg-koko-orange text-white font-bold rounded-xl hover:bg-koko-orange-dark transition">
             {t('login.submit')}
           </button>
         </div>
         <div className="mt-4">
           <button
-            onClick={() => signIn('google')}
+            onClick={() => alert('Connexion Google bientôt disponible')}
             className="w-full py-3 border border-gray-300 dark:border-gray-600 rounded-xl flex items-center justify-center space-x-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">

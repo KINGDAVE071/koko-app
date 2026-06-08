@@ -1,18 +1,18 @@
 'use client';
 
-import { Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { toast } from 'sonner';
+import { Eye, EyeOff } from 'lucide-react';
 
-// Composant interne qui utilise useSearchParams
-function RegisterForm() {
+export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const { register } = useAuth();
@@ -20,7 +20,6 @@ function RegisterForm() {
   const searchParams = useSearchParams();
   const { t, lang } = useLanguage();
 
-  // Pré-remplir l'email si présent dans l'URL
   useEffect(() => {
     const emailParam = searchParams.get('email');
     if (emailParam) setEmail(emailParam);
@@ -28,6 +27,7 @@ function RegisterForm() {
 
   const handleClick = async () => {
     setError('');
+
     if (!name.trim()) {
       setError((t('register.name') || 'Nom') + ' est requis.');
       return;
@@ -76,13 +76,23 @@ function RegisterForm() {
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             />
-            <input
-              type="password"
-              placeholder={t('register.password') || 'Mot de passe'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder={t('register.password') || 'Mot de passe'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
             <button onClick={handleClick} className="w-full py-3 bg-koko-orange text-white font-bold rounded-xl hover:bg-koko-orange-dark transition">
               {t('register.submit')}
             </button>
@@ -96,14 +106,5 @@ function RegisterForm() {
         </p>
       </div>
     </div>
-  );
-}
-
-// Page principale avec Suspense
-export default function RegisterPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Chargement...</div>}>
-      <RegisterForm />
-    </Suspense>
   );
 }
