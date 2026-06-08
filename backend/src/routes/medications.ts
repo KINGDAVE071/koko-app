@@ -5,7 +5,6 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-// Schéma pour la création/modification
 const medicationSchema = z.object({
   name: z.string().min(2),
   dosage: z.string().optional(),
@@ -15,7 +14,6 @@ const medicationSchema = z.object({
   times: z.array(z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/)).min(1, 'Au moins une heure de prise est requise'),
 });
 
-// Créer un médicament avec ses horaires
 router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
   try {
@@ -31,11 +29,8 @@ router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
       await client.query('INSERT INTO medication_times (medication_id, time) VALUES ($1,$2)', [medId, time]);
     }
     await client.query('COMMIT');
-    // Récupérer le médicament avec ses horaires
     const times = await client.query('SELECT time FROM medication_times WHERE medication_id = $1 ORDER BY time', [medId]);
-    res.status(201).json({
-      medication: { ...medResult.rows[0], times: times.rows.map((t: any) => t.time) }
-    });
+    res.status(201).json({ medication: { ...medResult.rows[0], times: times.rows.map((t: any) => t.time) } });
   } catch (error) {
     await client.query('ROLLBACK');
     if (error instanceof z.ZodError) return res.status(400).json({ error: error.issues[0].message });
@@ -45,9 +40,8 @@ router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Lister les médicaments actifs avec leurs horaires et les logs du jour
 router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const today = new Date().toISOString().split('T')[0];
   const medications = await pool.query(
     'SELECT * FROM medications WHERE user_id = $1 AND active = 1 ORDER BY created_at DESC',
     [req.userId]
@@ -68,15 +62,11 @@ router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   res.json({ medications: result });
 });
 
-// Marquer une prise (toggle)
 router.post('/:id/take', authMiddleware, async (req: AuthRequest, res: Response) => {
-  const { date, time } = req.body; // date YYYY-MM-DD, time HH:MM
+  const { date, time } = req.body;
   const medId = req.params.id;
-  // Vérifier que le médicament appartient à l'utilisateur
   const med = await pool.query('SELECT * FROM medications WHERE id = $1 AND user_id = $2', [medId, req.userId]);
   if (med.rows.length === 0) return res.status(404).json({ error: 'Médicament non trouvé' });
-
-  // Upsert
   await pool.query(
     `INSERT INTO medication_logs (medication_id, date, time, taken)
      VALUES ($1, $2, $3, true)
@@ -86,7 +76,6 @@ router.post('/:id/take', authMiddleware, async (req: AuthRequest, res: Response)
   res.json({ success: true });
 });
 
-// Désactiver un médicament
 router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
   await pool.query('UPDATE medications SET active = 0 WHERE id = $1 AND user_id = $2', [req.params.id, req.userId]);
   res.json({ message: 'Médicament désactivé' });
