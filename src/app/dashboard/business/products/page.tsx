@@ -66,7 +66,7 @@ export default function ProductsPage() {
         </form>
       )}
 
-      {products.map(p => (
+      {products.map((p: Product) => (
         <div key={p.id} className="bg-white dark:bg-koko-blue p-3 rounded-xl shadow-koko mb-2 flex justify-between items-center">
           <div>
             <p className="font-semibold">{p.name}</p>
