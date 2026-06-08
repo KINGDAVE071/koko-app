@@ -31,7 +31,7 @@ export default function DashboardPage() {
       await api.post('/medications', newMed);
       setShowAdd(false);
       setNewMed({ name: '', dosage: '', time: '08:00', frequency: 'daily', start_date: new Date().toISOString().split('T')[0] });
-      mutate(); // Rafraîchir la liste après ajout
+      mutate();
     } catch (err) {
       console.error(err);
     }
@@ -56,7 +56,7 @@ export default function DashboardPage() {
         <h2 className="text-lg font-bold mb-3">💊 {t('dashboard.pilulier')}</h2>
         {isLoading && <p className="text-gray-500">Chargement...</p>}
         {!isLoading && medications.length === 0 && <p className="text-gray-500">{t('dashboard.noMeds')}</p>}
-        {medications.map((med) => (
+        {medications.map((med: Medication) => (
           <div key={med.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
             <div>
               <p className="font-medium">{med.name} {med.dosage && `(${med.dosage})`}</p>
