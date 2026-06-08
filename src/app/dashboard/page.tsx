@@ -64,8 +64,14 @@ export default function DashboardPage() {
   // Ajouter un médicament
   const handleAddMed = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Vérifier que times n'est pas vide et ne contient pas de chaînes vides
+    const validTimes = newMed.times.filter(t => t && t.trim() !== '');
+    if (validTimes.length === 0) {
+      toast.error('Ajoutez au moins une heure de prise.');
+      return;
+    }
     try {
-      await api.post('/medications', newMed);
+      await api.post('/medications', { ...newMed, times: validTimes });
       setShowAdd(false);
       setNewMed({ name: '', dosage: '', frequency: 'daily', times: ['08:00'], start_date: new Date().toISOString().split('T')[0] });
       fetchMeds();
