@@ -34,7 +34,6 @@ export default function InvoicesPage() {
 
   if (isLoading) return <div className="p-4 text-center">Chargement...</div>;
 
-  // Filtrer uniquement les factures (type !== 'devis')
   const factures = invoices.filter((inv: Invoice) => inv.type !== 'devis');
 
   return (
@@ -57,7 +56,7 @@ export default function InvoicesPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {factures.map(inv => (
+          {factures.map((inv: Invoice) => (
             <div key={inv.id} className="bg-white dark:bg-koko-blue p-3 rounded-xl shadow flex justify-between items-center">
               <div>
                 <p className="font-bold flex items-center gap-2">
