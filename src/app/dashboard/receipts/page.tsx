@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import api from '@/lib/api';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { Plus } from 'lucide-react';
 import ReceiptV2 from '@/components/ReceiptV2';
+import { useReceipts } from '@/hooks/useKokoData';
 
 interface Receipt {
   id: number;
@@ -21,28 +22,20 @@ interface Receipt {
 
 export default function ReceiptsPage() {
   const { t } = useLanguage();
-  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const { receipts, isLoading, mutate } = useReceipts();
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ type: 'location', from_name: '', to_name: '', amount: '', currency: 'XOF', description: '', location: '' });
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-
-  const fetchReceipts = async () => {
-    const res = await api.get('/receipts');
-    setReceipts(res.data.receipts);
-  };
-
-  useEffect(() => { fetchReceipts(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await api.post('/receipts', { ...form, amount: parseFloat(form.amount) });
     setShowAdd(false);
-    fetchReceipts();
+    mutate();
   };
 
   const handleDeleteSingle = (id: number) => {
-    setReceipts(prev => prev.filter(r => r.id !== id));
-    setSelectedIds(prev => prev.filter(x => x !== id));
+    mutate(); // sera rappelé après suppression dans ReceiptV2
   };
 
   const toggleSelect = (id: number) => {
@@ -55,9 +48,11 @@ export default function ReceiptsPage() {
     for (const id of selectedIds) {
       await api.delete(`/receipts/${id}`);
     }
-    fetchReceipts();
     setSelectedIds([]);
+    mutate();
   };
+
+  if (isLoading) return <div className="p-4 text-center">Chargement...</div>;
 
   return (
     <div className="p-4">

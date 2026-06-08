@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import api from '@/lib/api';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { Plus, X, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useTransactions } from '@/hooks/useKokoData';
 
 interface Transaction {
   id: number;
@@ -16,32 +17,23 @@ interface Transaction {
 
 export default function TransactionsPage() {
   const { t } = useLanguage();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [balance, setBalance] = useState(0);
+  const { transactions, balance, isLoading, mutate } = useTransactions();
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ type: 'income', amount: '', description: '', date: new Date().toISOString().split('T')[0] });
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-
-  const fetchData = async () => {
-    const res = await api.get('/transactions');
-    setTransactions(res.data.transactions);
-    setBalance(res.data.balance);
-  };
-
-  useEffect(() => { fetchData(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await api.post('/transactions', { ...form, amount: parseFloat(form.amount) });
     setShowAdd(false);
     setForm({ type: 'income', amount: '', description: '', date: new Date().toISOString().split('T')[0] });
-    fetchData();
+    mutate();
   };
 
   const handleDeleteSingle = async (id: number) => {
     if (confirm('Supprimer cette transaction ?')) {
       await api.delete(`/transactions/${id}`);
-      fetchData();
+      mutate();
     }
   };
 
@@ -55,9 +47,11 @@ export default function TransactionsPage() {
     for (const id of selectedIds) {
       await api.delete(`/transactions/${id}`);
     }
-    fetchData();
     setSelectedIds([]);
+    mutate();
   };
+
+  if (isLoading) return <div className="p-4 text-center">Chargement...</div>;
 
   return (
     <div className="p-4">

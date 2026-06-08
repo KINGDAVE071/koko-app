@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { Plus, Trash2, MapPin } from 'lucide-react';
 import PremiumGate from '@/components/PremiumGate';
 import Link from 'next/link';
+import { useMedications } from '@/hooks/useKokoData';
 
 interface Medication {
   id: number;
@@ -20,22 +21,9 @@ interface Medication {
 export default function DashboardPage() {
   const { user } = useAuth();
   const { t, lang } = useLanguage();
-  const [medications, setMedications] = useState<Medication[]>([]);
+  const { medications, isLoading, mutate } = useMedications();
   const [showAdd, setShowAdd] = useState(false);
   const [newMed, setNewMed] = useState({ name: '', dosage: '', time: '08:00', frequency: 'daily', start_date: new Date().toISOString().split('T')[0] });
-
-  const fetchMeds = async () => {
-    try {
-      const res = await api.get('/medications');
-      setMedications(res.data.medications);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  useEffect(() => {
-    fetchMeds();
-  }, []);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +31,7 @@ export default function DashboardPage() {
       await api.post('/medications', newMed);
       setShowAdd(false);
       setNewMed({ name: '', dosage: '', time: '08:00', frequency: 'daily', start_date: new Date().toISOString().split('T')[0] });
-      fetchMeds();
+      mutate(); // Rafraîchir la liste après ajout
     } catch (err) {
       console.error(err);
     }
@@ -51,7 +39,7 @@ export default function DashboardPage() {
 
   const handleDelete = async (id: number) => {
     await api.delete(`/medications/${id}`);
-    fetchMeds();
+    mutate();
   };
 
   const welcomeMessage = t('dashboard.welcome').replace('{name}', user?.name || '');
@@ -66,7 +54,8 @@ export default function DashboardPage() {
 
       <div className="bg-white dark:bg-koko-blue rounded-2xl p-5 shadow-koko mb-4">
         <h2 className="text-lg font-bold mb-3">💊 {t('dashboard.pilulier')}</h2>
-        {medications.length === 0 && <p className="text-gray-500">{t('dashboard.noMeds')}</p>}
+        {isLoading && <p className="text-gray-500">Chargement...</p>}
+        {!isLoading && medications.length === 0 && <p className="text-gray-500">{t('dashboard.noMeds')}</p>}
         {medications.map((med) => (
           <div key={med.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
             <div>
