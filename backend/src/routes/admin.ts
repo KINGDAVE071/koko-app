@@ -6,22 +6,24 @@ import { adminMiddleware } from '../middleware/admin';
 const router = Router();
 router.use(authMiddleware, adminMiddleware);
 
+// Liste des utilisateurs
 router.get('/users', async (req: AuthRequest, res: Response) => {
   const result = await pool.query('SELECT id, email, name, language, role, created_at FROM users ORDER BY created_at DESC');
   res.json({ users: result.rows });
 });
 
+// Premium
 router.put('/users/:id/premium', async (req: AuthRequest, res: Response) => {
-  const userId = req.params.id;
   const { premium } = req.body;
   if (premium) {
-    await pool.query("UPDATE users SET premium_until = NOW() + INTERVAL '30 days' WHERE id = $1", [userId]);
+    await pool.query("UPDATE users SET premium_until = NOW() + INTERVAL '30 days' WHERE id = $1", [req.params.id]);
   } else {
-    await pool.query('UPDATE users SET premium_until = NULL WHERE id = $1', [userId]);
+    await pool.query('UPDATE users SET premium_until = NULL WHERE id = $1', [req.params.id]);
   }
   res.json({ message: 'Statut premium mis à jour' });
 });
 
+// Supprimer un utilisateur
 router.delete('/users/:id', async (req: AuthRequest, res: Response) => {
   const userId = parseInt(req.params.id);
   if (userId === req.userId) return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte' });
@@ -29,10 +31,35 @@ router.delete('/users/:id', async (req: AuthRequest, res: Response) => {
   res.json({ message: 'Utilisateur supprimé' });
 });
 
+// Stats
 router.get('/stats', async (req: AuthRequest, res: Response) => {
   const total = await pool.query('SELECT COUNT(*)::int AS count FROM users');
   const premium = await pool.query("SELECT COUNT(*)::int AS count FROM users WHERE premium_until > NOW()");
   res.json({ totalUsers: total.rows[0].count, premiumUsers: premium.rows[0].count });
+});
+
+// Création des nouvelles tables (si manquantes)
+router.post('/create-medication-tables', async (req: AuthRequest, res: Response) => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS medication_times (
+        id SERIAL PRIMARY KEY,
+        medication_id INTEGER NOT NULL REFERENCES medications(id) ON DELETE CASCADE,
+        time TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS medication_logs (
+        id SERIAL PRIMARY KEY,
+        medication_id INTEGER NOT NULL REFERENCES medications(id) ON DELETE CASCADE,
+        date TEXT NOT NULL,
+        time TEXT NOT NULL,
+        taken BOOLEAN DEFAULT false,
+        UNIQUE(medication_id, date, time)
+      );
+    `);
+    res.json({ message: 'Tables créées avec succès' });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 export default router;
