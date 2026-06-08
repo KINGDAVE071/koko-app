@@ -6,7 +6,7 @@ import { MapPin, Navigation, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 interface Pharmacy {
-  id: number;
+  id: string;
   name: string;
   lat: number;
   lon: number;
@@ -72,18 +72,17 @@ export default function PharmaciesPage() {
               <div>
                 <p className="font-semibold">{pharm.name}</p>
                 <p className="text-sm text-gray-500">
-                  {pharm.isAirDistance ? '≈ ' : ''}{pharm.distance} km
-                  {pharm.isAirDistance && ' (vol d\'oiseau)'}
-                  {pharm.duration && ` · ${pharm.duration} min`}
+                  {pharm.distance} km
                 </p>
               </div>
               <a
                 href={`https://www.google.com/maps/dir/?api=1&destination=${pharm.lat},${pharm.lon}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-koko-orange"
+                className="flex items-center gap-1 px-3 py-2 bg-koko-orange text-white text-sm font-medium rounded-lg hover:bg-koko-orange-dark transition-colors"
               >
-                <Navigation size={20} />
+                <Navigation size={16} />
+                Itinéraire
               </a>
             </div>
           ))}
