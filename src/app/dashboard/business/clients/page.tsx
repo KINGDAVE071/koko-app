@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import api from '@/lib/api';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { Plus, Trash2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useClients } from '@/hooks/useKokoData';
 
 interface Client {
   id: number;
@@ -16,29 +17,24 @@ interface Client {
 
 export default function ClientsPage() {
   const { t } = useLanguage();
-  const [clients, setClients] = useState<Client[]>([]);
+  const { clients, isLoading, mutate } = useClients();
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', phone: '', type: 'client' });
-
-  const fetchClients = async () => {
-    const res = await api.get('/clients');
-    setClients(res.data.clients);
-  };
-
-  useEffect(() => { fetchClients(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await api.post('/clients', form);
     setShowAdd(false);
     setForm({ name: '', email: '', phone: '', type: 'client' });
-    fetchClients();
+    mutate();
   };
 
   const handleDelete = async (id: number) => {
     await api.delete(`/clients/${id}`);
-    fetchClients();
+    mutate();
   };
+
+  if (isLoading) return <div className="p-4 text-center">Chargement...</div>;
 
   return (
     <div className="p-4">

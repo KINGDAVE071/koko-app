@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import api from '@/lib/api';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { Plus, Trash2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useProducts } from '@/hooks/useKokoData';
 
 interface Product {
   id: number;
@@ -17,16 +18,9 @@ interface Product {
 
 export default function ProductsPage() {
   const { t } = useLanguage();
-  const [products, setProducts] = useState<Product[]>([]);
+  const { products, isLoading, mutate } = useProducts();
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: '', price: '', unit: 'pièce', stock: '0', tva: '0' });
-
-  const fetchProducts = async () => {
-    const res = await api.get('/products');
-    setProducts(res.data.products);
-  };
-
-  useEffect(() => { fetchProducts(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,13 +33,15 @@ export default function ProductsPage() {
     });
     setShowAdd(false);
     setForm({ name: '', price: '', unit: 'pièce', stock: '0', tva: '0' });
-    fetchProducts();
+    mutate();
   };
 
   const handleDelete = async (id: number) => {
     await api.delete(`/products/${id}`);
-    fetchProducts();
+    mutate();
   };
+
+  if (isLoading) return <div className="p-4 text-center">Chargement...</div>;
 
   return (
     <div className="p-4">

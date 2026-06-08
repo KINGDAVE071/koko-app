@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import api from '@/lib/api';
 import { FileText, Plus, Trash2, Eye, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useInvoices } from '@/hooks/useKokoData';
 
 interface Invoice {
   id: number;
@@ -16,30 +17,25 @@ interface Invoice {
 }
 
 export default function InvoicesPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-
-  const fetchInvoices = async () => {
-    try {
-      const res = await api.get('/invoices');
-      // Filtrer pour ne garder que les factures
-      const factures = res.data.invoices.filter((inv: Invoice) => inv.type === 'facture');
-      setInvoices(factures);
-    } catch (e) {}
-  };
-
-  useEffect(() => { fetchInvoices(); }, []);
+  const { invoices, isLoading, mutate } = useInvoices();
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const handleDelete = async (id: number) => {
     if (confirm('Supprimer cette facture ?')) {
       await api.delete(`/invoices/${id}`);
-      setInvoices(invoices.filter(inv => inv.id !== id));
+      mutate();
     }
   };
 
   const handleStatusChange = async (id: number, newStatus: string) => {
     await api.put(`/invoices/${id}`, { status: newStatus });
-    fetchInvoices();
+    mutate();
   };
+
+  if (isLoading) return <div className="p-4 text-center">Chargement...</div>;
+
+  // Filtrer uniquement les factures (type !== 'devis')
+  const factures = invoices.filter((inv: Invoice) => inv.type !== 'devis');
 
   return (
     <div className="p-4">
@@ -53,7 +49,7 @@ export default function InvoicesPage() {
         </Link>
       </div>
 
-      {invoices.length === 0 ? (
+      {factures.length === 0 ? (
         <div className="text-center text-gray-500 py-12">
           <FileText size={48} className="mx-auto mb-4 opacity-30" />
           <p>Aucune facture pour le moment.</p>
@@ -61,7 +57,7 @@ export default function InvoicesPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {invoices.map(inv => (
+          {factures.map(inv => (
             <div key={inv.id} className="bg-white dark:bg-koko-blue p-3 rounded-xl shadow flex justify-between items-center">
               <div>
                 <p className="font-bold flex items-center gap-2">

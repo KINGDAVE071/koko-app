@@ -1,29 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import api from '@/lib/api';
 import { useLanguage } from '@/i18n/LanguageContext';
 import Link from 'next/link';
 import { Package, Users, ArrowUpDown, FileText, ClipboardList } from 'lucide-react';
-
-interface DashboardData {
-  productsCount: number;
-  clientsCount: number;
-  invoicesCount: number;
-  income: number;
-  expense: number;
-  balance: number;
-}
+import { useBusinessDashboard } from '@/hooks/useKokoData';
 
 export default function BusinessDashboard() {
   const { t } = useLanguage();
-  const [data, setData] = useState<DashboardData | null>(null);
+  const { dashboard, isLoading } = useBusinessDashboard();
 
-  useEffect(() => {
-    api.get('/business/dashboard').then(res => setData(res.data)).catch(console.error);
-  }, []);
-
-  if (!data) return <div className="p-4 text-center">Chargement...</div>;
+  if (isLoading) return <div className="p-4 text-center">Chargement...</div>;
 
   return (
     <div className="p-4">
@@ -32,22 +18,22 @@ export default function BusinessDashboard() {
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="bg-white dark:bg-koko-blue p-4 rounded-xl shadow-koko">
           <Package className="w-6 h-6 text-koko-orange mb-2" />
-          <p className="text-2xl font-bold">{data.productsCount}</p>
+          <p className="text-2xl font-bold">{dashboard.productsCount}</p>
           <p className="text-xs text-gray-500">{t('business.products')}</p>
         </div>
         <div className="bg-white dark:bg-koko-blue p-4 rounded-xl shadow-koko">
           <Users className="w-6 h-6 text-koko-orange mb-2" />
-          <p className="text-2xl font-bold">{data.clientsCount}</p>
+          <p className="text-2xl font-bold">{dashboard.clientsCount}</p>
           <p className="text-xs text-gray-500">{t('business.clients')}</p>
         </div>
         <div className="bg-white dark:bg-koko-blue p-4 rounded-xl shadow-koko">
           <FileText className="w-6 h-6 text-koko-orange mb-2" />
-          <p className="text-2xl font-bold">{data.invoicesCount}</p>
+          <p className="text-2xl font-bold">{dashboard.invoicesCount}</p>
           <p className="text-xs text-gray-500">Documents</p>
         </div>
         <div className="bg-white dark:bg-koko-blue p-4 rounded-xl shadow-koko">
           <ArrowUpDown className="w-6 h-6 text-koko-orange mb-2" />
-          <p className="text-2xl font-bold">{data.balance.toLocaleString()} FCFA</p>
+          <p className="text-2xl font-bold">{dashboard.balance.toLocaleString()} FCFA</p>
           <p className="text-xs text-gray-500">{t('business.balance')}</p>
         </div>
       </div>

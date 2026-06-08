@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import api from '@/lib/api';
 import { ClipboardList, Plus, Trash2, Eye, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useQuotes } from '@/hooks/useKokoData';
 
-interface Invoice {
+interface Quote {
   id: number;
   number: string;
   client_name: string;
@@ -16,30 +17,21 @@ interface Invoice {
 }
 
 export default function QuotesPage() {
-  const [quotes, setQuotes] = useState<Invoice[]>([]);
-
-  const fetchQuotes = async () => {
-    try {
-      const res = await api.get('/invoices');
-      // Filtrer pour ne garder que les devis
-      const devis = res.data.invoices.filter((inv: Invoice) => inv.type === 'devis');
-      setQuotes(devis);
-    } catch (e) {}
-  };
-
-  useEffect(() => { fetchQuotes(); }, []);
+  const { quotes, isLoading, mutate } = useQuotes();
 
   const handleDelete = async (id: number) => {
     if (confirm('Supprimer ce devis ?')) {
       await api.delete(`/invoices/${id}`);
-      setQuotes(quotes.filter(inv => inv.id !== id));
+      mutate();
     }
   };
 
   const handleStatusChange = async (id: number, newStatus: string) => {
     await api.put(`/invoices/${id}`, { status: newStatus });
-    fetchQuotes();
+    mutate();
   };
+
+  if (isLoading) return <div className="p-4 text-center">Chargement...</div>;
 
   return (
     <div className="p-4">
@@ -73,7 +65,7 @@ export default function QuotesPage() {
                   inv.status === 'paid' ? 'bg-green-100 text-green-700' :
                   inv.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
                 }`}>
-                  {inv.status === 'paid' ? 'Payée' : inv.status === 'cancelled' ? 'Annulée' : 'En attente'}
+                  {inv.status === 'paid' ? 'Payé' : inv.status === 'cancelled' ? 'Annulé' : 'En attente'}
                 </span>
                 <select
                   value={inv.status}
@@ -81,8 +73,8 @@ export default function QuotesPage() {
                   className="text-xs border rounded p-1 ml-2 dark:bg-gray-700"
                 >
                   <option value="pending">En attente</option>
-                  <option value="paid">Payée</option>
-                  <option value="cancelled">Annulée</option>
+                  <option value="paid">Payé</option>
+                  <option value="cancelled">Annulé</option>
                 </select>
               </div>
               <div className="flex items-center space-x-3">

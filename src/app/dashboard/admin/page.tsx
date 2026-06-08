@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Trash2, Shield, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useAdminUsers, useAdminStats } from '@/hooks/useKokoData';
 
 interface User {
   id: number;
@@ -18,8 +19,8 @@ interface User {
 export default function AdminPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [users, setUsers] = useState<User[]>([]);
-  const [stats, setStats] = useState({ totalUsers: 0, premiumUsers: 0 });
+  const { users, isLoading: usersLoading, mutate: mutateUsers } = useAdminUsers();
+  const { stats, isLoading: statsLoading } = useAdminStats();
 
   useEffect(() => {
     if (!loading && (!user || user.role !== 'admin')) {
@@ -27,47 +28,22 @@ export default function AdminPage() {
     }
   }, [user, loading, router]);
 
-  useEffect(() => {
-    if (user && user.role === 'admin') {
-      fetchUsers();
-      fetchStats();
-    }
-  }, [user]);
-
-  const fetchUsers = async () => {
-    try {
-      const res = await api.get('/admin/users');
-      setUsers(res.data.users);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const res = await api.get('/admin/stats');
-      setStats(res.data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  if (loading || !user) return <div>Chargement...</div>;
+  if (user.role !== 'admin') return null;
 
   const handleDeleteUser = async (id: number) => {
     if (confirm('Supprimer cet utilisateur ?')) {
       await api.delete(`/admin/users/${id}`);
-      fetchUsers();
-      fetchStats();
+      mutateUsers();
     }
   };
 
-  const handleTogglePremium = async (id: number, currentStatus: boolean) => {
-    await api.put(`/admin/users/${id}/premium`, { premium: !currentStatus });
-    fetchUsers();
-    fetchStats();
+  const handleTogglePremium = async (id: number) => {
+    await api.put(`/admin/users/${id}/premium`, { premium: true });
+    mutateUsers();
   };
 
-  if (loading || !user) return <div>Chargement...</div>;
-  if (user.role !== 'admin') return null;
+  if (usersLoading || statsLoading) return <div>Chargement...</div>;
 
   return (
     <div className="p-4">
@@ -99,7 +75,7 @@ export default function AdminPage() {
               </div>
               <div className="flex space-x-2">
                 <button
-                  onClick={() => handleTogglePremium(u.id, false)}
+                  onClick={() => handleTogglePremium(u.id)}
                   className="px-2 py-1 text-xs bg-koko-orange text-white rounded-lg"
                 >
                   Premium
