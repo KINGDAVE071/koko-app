@@ -74,7 +74,7 @@ export default function LoginPage() {
         </div>
         <div className="mt-4">
           <button
-            onClick={() => alert('Connexion Google bientôt disponible')}
+            onClick={() => signIn('google')}
             className="w-full py-3 border border-gray-300 dark:border-gray-600 rounded-xl flex items-center justify-center space-x-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
