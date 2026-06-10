@@ -22,7 +22,7 @@ router.get('/', auth_1.authMiddleware, async (req, res) => {
         res.json({ products: result.rows });
     }
     catch (e) {
-        res.status(500).json({ error: 'Erreur serveur' });
+        res.status(500).json({ error: e.message });
     }
 });
 router.post('/', auth_1.authMiddleware, async (req, res) => {
@@ -35,7 +35,7 @@ router.post('/', auth_1.authMiddleware, async (req, res) => {
     catch (error) {
         if (error instanceof zod_1.z.ZodError)
             return res.status(400).json({ error: error.issues[0].message });
-        res.status(500).json({ error: 'Erreur serveur' });
+        res.status(500).json({ error: error.message || 'Erreur serveur' });
     }
 });
 router.put('/:id', auth_1.authMiddleware, async (req, res) => {
@@ -50,12 +50,17 @@ router.put('/:id', auth_1.authMiddleware, async (req, res) => {
     catch (error) {
         if (error instanceof zod_1.z.ZodError)
             return res.status(400).json({ error: error.issues[0].message });
-        res.status(500).json({ error: 'Erreur serveur' });
+        res.status(500).json({ error: error.message || 'Erreur serveur' });
     }
 });
 router.delete('/:id', auth_1.authMiddleware, async (req, res) => {
-    await database_1.default.query('DELETE FROM products WHERE id=$1 AND user_id=$2', [req.params.id, req.userId]);
-    res.json({ message: 'Produit supprimé' });
+    try {
+        await database_1.default.query('DELETE FROM products WHERE id=$1 AND user_id=$2', [req.params.id, req.userId]);
+        res.json({ message: 'Produit supprimé' });
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message || 'Erreur serveur' });
+    }
 });
 exports.default = router;
 //# sourceMappingURL=products.js.map

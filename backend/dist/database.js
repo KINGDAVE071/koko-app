@@ -159,6 +159,9 @@ async function createTables() {
         await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS discount REAL DEFAULT 0`);
         await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS notes TEXT`);
         await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_terms TEXT`);
+        await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS cost_price REAL DEFAULT 0`);
+        await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS min_stock INTEGER DEFAULT 0`);
+        await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS tva REAL DEFAULT 0`);
     }
     finally {
         client.release();

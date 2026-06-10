@@ -18,8 +18,8 @@ router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const result = await pool.query('SELECT * FROM products WHERE user_id = $1 ORDER BY name', [req.userId]);
     res.json({ products: result.rows });
-  } catch (e) {
-    res.status(500).json({ error: 'Erreur serveur' });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
   }
 });
 
@@ -32,9 +32,9 @@ router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
       [req.userId, data.name, data.price, data.cost_price, data.stock, data.min_stock, data.tva]
     );
     res.status(201).json({ product: result.rows[0] });
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof z.ZodError) return res.status(400).json({ error: error.issues[0].message });
-    res.status(500).json({ error: 'Erreur serveur' });
+    res.status(500).json({ error: error.message || 'Erreur serveur' });
   }
 });
 
@@ -48,15 +48,19 @@ router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Produit non trouvé' });
     res.json({ product: result.rows[0] });
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof z.ZodError) return res.status(400).json({ error: error.issues[0].message });
-    res.status(500).json({ error: 'Erreur serveur' });
+    res.status(500).json({ error: error.message || 'Erreur serveur' });
   }
 });
 
 router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
-  await pool.query('DELETE FROM products WHERE id=$1 AND user_id=$2', [req.params.id, req.userId]);
-  res.json({ message: 'Produit supprimé' });
+  try {
+    await pool.query('DELETE FROM products WHERE id=$1 AND user_id=$2', [req.params.id, req.userId]);
+    res.json({ message: 'Produit supprimé' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Erreur serveur' });
+  }
 });
 
 export default router;
