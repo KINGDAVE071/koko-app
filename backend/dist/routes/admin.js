@@ -74,4 +74,44 @@ router.post('/fix-medications-table', async (req, res) => {
         res.status(500).json({ error: e.message });
     }
 });
+// Réinitialisation complète du pilulier
+router.post('/reset-medications', async (req, res) => {
+    try {
+        await database_1.default.query('DROP TABLE IF EXISTS medication_logs CASCADE');
+        await database_1.default.query('DROP TABLE IF EXISTS medication_times CASCADE');
+        await database_1.default.query('DROP TABLE IF EXISTS medications CASCADE');
+        await database_1.default.query(`
+      CREATE TABLE medications (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        dosage TEXT,
+        frequency TEXT NOT NULL,
+        start_date TEXT NOT NULL,
+        end_date TEXT,
+        active INTEGER DEFAULT 1,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE medication_times (
+        id SERIAL PRIMARY KEY,
+        medication_id INTEGER NOT NULL REFERENCES medications(id) ON DELETE CASCADE,
+        time TEXT NOT NULL
+      );
+
+      CREATE TABLE medication_logs (
+        id SERIAL PRIMARY KEY,
+        medication_id INTEGER NOT NULL REFERENCES medications(id) ON DELETE CASCADE,
+        date TEXT NOT NULL,
+        time TEXT NOT NULL,
+        taken BOOLEAN DEFAULT false,
+        UNIQUE(medication_id, date, time)
+      );
+    `);
+        res.json({ message: 'Tables du pilulier réinitialisées avec succès' });
+    }
+    catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
 //# sourceMappingURL=admin.js.map
