@@ -1,5 +1,4 @@
 'use client';
-import { signIn } from 'next-auth/react';
 
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { Eye, EyeOff } from 'lucide-react';
+import { signIn } from 'next-auth/react';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,7 +75,7 @@ export default function LoginPage() {
         </div>
         <div className="mt-4">
           <button
-            onClick={() => signIn('google')}
+            onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
             className="w-full py-3 border border-gray-300 dark:border-gray-600 rounded-xl flex items-center justify-center space-x-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">

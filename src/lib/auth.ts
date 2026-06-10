@@ -18,16 +18,13 @@ const handler = NextAuth({
         );
         const data = await res.json();
         if (!data.exists) {
-          // Rediriger vers l'inscription avec l'email pré-rempli
+          // Rediriger vers /register avec l'email pré-rempli
           return `/register?email=${encodeURIComponent(email)}&fromGoogle=true`;
         }
         return true;
       } catch (e) {
         return false;
       }
-    },
-    async session({ session, token }) {
-      return session;
     },
   },
   pages: {
