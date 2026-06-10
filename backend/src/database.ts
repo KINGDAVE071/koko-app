@@ -9,6 +9,7 @@ export async function createTables() {
   const client = await pool.connect();
   try {
     await client.query(`
+      -- Table users (inchangée)
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         email TEXT UNIQUE NOT NULL,
@@ -20,6 +21,8 @@ export async function createTables() {
         logo TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+
+      -- Table medications (pilulier)
       CREATE TABLE IF NOT EXISTS medications (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -31,11 +34,13 @@ export async function createTables() {
         active INTEGER DEFAULT 1,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+
       CREATE TABLE IF NOT EXISTS medication_times (
         id SERIAL PRIMARY KEY,
         medication_id INTEGER NOT NULL REFERENCES medications(id) ON DELETE CASCADE,
         time TEXT NOT NULL
       );
+
       CREATE TABLE IF NOT EXISTS medication_logs (
         id SERIAL PRIMARY KEY,
         medication_id INTEGER NOT NULL REFERENCES medications(id) ON DELETE CASCADE,
@@ -44,7 +49,8 @@ export async function createTables() {
         taken BOOLEAN DEFAULT false,
         UNIQUE(medication_id, date, time)
       );
-      -- autres tables inchangées (conversion_rates, receipts, products, clients, invoices, invoice_items, transactions)
+
+      -- Table conversion_rates (inchangée)
       CREATE TABLE IF NOT EXISTS conversion_rates (
         id SERIAL PRIMARY KEY,
         from_currency TEXT NOT NULL,
@@ -53,6 +59,8 @@ export async function createTables() {
         parallel_rate REAL,
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
+
+      -- Table receipts (quittances)
       CREATE TABLE IF NOT EXISTS receipts (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -68,16 +76,32 @@ export async function createTables() {
         hash TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+
+      -- Table products (enrichie pour le commerce)
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         name TEXT NOT NULL,
-        price REAL NOT NULL,
-        unit TEXT DEFAULT 'pièce',
+        price REAL NOT NULL DEFAULT 0,
+        cost_price REAL DEFAULT 0,
         stock INTEGER DEFAULT 0,
+        min_stock INTEGER DEFAULT 0,
         tva REAL DEFAULT 0,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+
+      -- Table sale_items (liaison entre une quittance et les produits vendus)
+      CREATE TABLE IF NOT EXISTS sale_items (
+        id SERIAL PRIMARY KEY,
+        receipt_id INTEGER NOT NULL REFERENCES receipts(id) ON DELETE CASCADE,
+        product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
+        product_name TEXT NOT NULL,
+        quantity INTEGER NOT NULL,
+        unit_price REAL NOT NULL,
+        cost_price REAL NOT NULL DEFAULT 0
+      );
+
+      -- Tables invoices / invoice_items (conservées pour les factures formelles)
       CREATE TABLE IF NOT EXISTS clients (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -87,6 +111,7 @@ export async function createTables() {
         type TEXT CHECK(type IN ('client', 'fournisseur')) NOT NULL DEFAULT 'client',
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+
       CREATE TABLE IF NOT EXISTS invoices (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -104,6 +129,7 @@ export async function createTables() {
         status TEXT DEFAULT 'pending',
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+
       CREATE TABLE IF NOT EXISTS invoice_items (
         id SERIAL PRIMARY KEY,
         invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
@@ -113,6 +139,8 @@ export async function createTables() {
         unit_price REAL NOT NULL,
         tva REAL DEFAULT 0
       );
+
+      -- Table transactions (pour les entrées/sorties d'argent)
       CREATE TABLE IF NOT EXISTS transactions (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -123,12 +151,14 @@ export async function createTables() {
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
     `);
+
+    // Colonnes manquantes sur les anciennes tables
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS logo TEXT`);
     await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS client_name TEXT`);
     await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS due_date TEXT`);
     await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS discount REAL DEFAULT 0`);
     await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS notes TEXT`);
     await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_terms TEXT`);
-    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS logo TEXT`);
   } finally {
     client.release();
   }
