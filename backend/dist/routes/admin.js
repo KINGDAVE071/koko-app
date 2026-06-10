@@ -64,4 +64,14 @@ router.post('/create-medication-tables', async (req, res) => {
     }
 });
 exports.default = router;
+// Route pour supprimer la colonne "time" obsolète
+router.post('/fix-medications-table', async (req, res) => {
+    try {
+        await database_1.default.query('ALTER TABLE medications DROP COLUMN IF EXISTS time');
+        res.json({ message: 'Colonne time supprimée avec succès' });
+    }
+    catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
 //# sourceMappingURL=admin.js.map
