@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Trash2, Shield, Search, BarChart3, Users, FileText, Activity } from 'lucide-react';
+import { ArrowLeft, Trash2, Shield, Search, BarChart3, Users, Activity } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Line } from 'react-chartjs-2';
@@ -39,13 +39,12 @@ interface User {
 }
 
 interface AuditLog {
-  target_type?: string;
-  target_id?: number;
   id: number;
   admin_name: string;
   action: string;
-  target_type: string;
-  details: string;
+  target_type?: string;
+  target_id?: number;
+  details?: string;
   created_at: string;
 }
 
@@ -225,7 +224,7 @@ export default function AdminPage() {
           {logs.map(log => (
             <div key={log.id} className="bg-white dark:bg-koko-blue p-3 rounded-xl shadow-koko">
               <p className="text-sm font-medium">{log.admin_name} : {log.action}</p>
-              <p className="text-xs text-gray-500">{log.details || `${log.target_type} #${log.target_id}`}</p>
+              <p className="text-xs text-gray-500">{log.details || (log.target_type ? `${log.target_type} #${log.target_id}` : '')}</p>
               <p className="text-xs text-gray-400">{new Date(log.created_at).toLocaleString()}</p>
             </div>
           ))}
