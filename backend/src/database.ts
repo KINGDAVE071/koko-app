@@ -166,3 +166,16 @@ await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS cost_price REA
 }
 
 export default pool;
+
+// Table des logs d'audit
+await client.query(`
+  CREATE TABLE IF NOT EXISTS audit_logs (
+    id SERIAL PRIMARY KEY,
+    admin_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    action TEXT NOT NULL,
+    target_type TEXT,
+    target_id INTEGER,
+    details TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  );
+`);
