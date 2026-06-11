@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -75,31 +75,43 @@ export default function AdminPage() {
       api.get('/admin/stats')
         .then(res => setStats(res.data))
         .catch(() => {});
-
       // Charger l'évolution
       api.get('/admin/stats/evolution')
-        .then(res => setEvolution(res.data))
-        .catch(() => {})
-        .finally(() => setDataLoaded(true));
+        .then(res => {
+          setEvolution(res.data);
+          setDataLoaded(true);
+        })
+        .catch(() => setDataLoaded(true));
     }
   }, [user]);
 
-  const fetchUsers = () => {
-    api.get(`/admin/users?search=${encodeURIComponent(search)}`)
-      .then(res => setUsers(res.data.users))
-      .catch(() => {});
-  };
+  const fetchUsers = useCallback(async () => {
+    try {
+      const res = await api.get(`/admin/users?search=${encodeURIComponent(search)}`);
+      setUsers(res.data.users);
+    } catch {}
+  }, [search]);
 
-  const fetchLogs = () => {
-    api.get('/admin/audit')
-      .then(res => setLogs(res.data.logs))
-      .catch(() => {});
-  };
+  const fetchLogs = useCallback(async () => {
+    try {
+      const res = await api.get('/admin/audit');
+      setLogs(res.data.logs);
+    } catch {}
+  }, []);
+
+  // Recherche automatique après 300ms d'inactivité
+  useEffect(() => {
+    if (tab !== 'users') return;
+    const timer = setTimeout(() => {
+      fetchUsers();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search, tab, fetchUsers]);
 
   useEffect(() => {
     if (tab === 'users') fetchUsers();
     if (tab === 'audit') fetchLogs();
-  }, [tab]);
+  }, [tab, fetchUsers, fetchLogs]);
 
   const handleDeleteUser = async (id: number) => {
     if (!confirm('Supprimer cet utilisateur ?')) return;
@@ -200,6 +212,9 @@ export default function AdminPage() {
               <Line data={chartData} options={{ responsive: true, plugins: { legend: { position: 'bottom' } } }} />
             </div>
           )}
+          {dataLoaded && evolution.length === 0 && (
+            <p className="text-center text-gray-500 py-8">Pas encore de données pour afficher le graphique.</p>
+          )}
         </div>
       )}
 
@@ -210,14 +225,15 @@ export default function AdminPage() {
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Rechercher un utilisateur..."
+                placeholder="Rechercher par nom ou email..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && fetchUsers()}
                 className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
               />
             </div>
-            <button onClick={fetchUsers} className="px-4 py-2 bg-koko-orange text-white rounded-lg">Chercher</button>
+            <button onClick={fetchUsers} className="px-4 py-2 bg-koko-orange text-white rounded-lg">
+              Chercher
+            </button>
           </div>
 
           <div className="space-y-2">
@@ -241,6 +257,9 @@ export default function AdminPage() {
                 </div>
               </div>
             ))}
+            {users.length === 0 && (
+              <p className="text-gray-500 text-center py-4">Aucun utilisateur trouvé.</p>
+            )}
           </div>
         </div>
       )}
