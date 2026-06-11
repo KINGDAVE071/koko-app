@@ -151,6 +151,7 @@ export async function createTables() {
     await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS cost_price REAL DEFAULT 0`);
     await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS min_stock INTEGER DEFAULT 0`);
     await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS tva REAL DEFAULT 0`);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS blocked BOOLEAN DEFAULT false`);
   } finally {
     client.release();
   }

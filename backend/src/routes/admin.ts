@@ -6,7 +6,7 @@ import { adminMiddleware } from '../middleware/admin';
 const router = Router();
 router.use(authMiddleware, adminMiddleware);
 
-// Helper pour enregistrer un audit
+// Helper pour journaliser les actions
 async function logAction(adminId: number, action: string, targetType?: string, targetId?: number, details?: string) {
   await pool.query(
     `INSERT INTO audit_logs (admin_id, action, target_type, target_id, details) VALUES ($1,$2,$3,$4,$5)`,
@@ -14,32 +14,31 @@ async function logAction(adminId: number, action: string, targetType?: string, t
   );
 }
 
-// ─── Stats globales ─────────────────────────────────────────────────
-router.get('/stats', async (req: AuthRequest, res: Response) => {
+// ─── Statistiques globales ─────────────────────────────────────────────
+router.get('/stats', async (_req: AuthRequest, res: Response) => {
   try {
-    const totalUsers = (await pool.query('SELECT COUNT(*)::int AS count FROM users')).rows[0].count;
-    const premiumUsers = (await pool.query("SELECT COUNT(*)::int AS count FROM users WHERE premium_until > NOW()")).rows[0].count;
-    const totalSales = (await pool.query("SELECT COUNT(*)::int AS count FROM receipts WHERE type = 'vente'")).rows[0].count;
-    const revenue = (await pool.query("SELECT COALESCE(SUM(amount),0) AS total FROM receipts WHERE type = 'vente'")).rows[0].total;
-    const newToday = (await pool.query("SELECT COUNT(*)::int AS count FROM users WHERE created_at::date = CURRENT_DATE")).rows[0].count;
-
+    const total = await pool.query('SELECT COUNT(*)::int AS count FROM users');
+    const premium = await pool.query("SELECT COUNT(*)::int AS count FROM users WHERE premium_until > NOW()");
+    const sales = await pool.query("SELECT COUNT(*)::int AS count FROM receipts WHERE type = 'vente'");
+    const revenue = await pool.query("SELECT COALESCE(SUM(amount),0) AS total FROM receipts WHERE type = 'vente'");
+    const newToday = await pool.query("SELECT COUNT(*)::int AS count FROM users WHERE created_at::date = CURRENT_DATE");
     res.json({
-      totalUsers,
-      premiumUsers,
-      totalSales,
-      revenue: parseFloat(revenue),
-      newToday,
+      totalUsers: total.rows[0].count,
+      premiumUsers: premium.rows[0].count,
+      totalSales: sales.rows[0].count,
+      revenue: parseFloat(revenue.rows[0].total),
+      newToday: newToday.rows[0].count,
     });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// ─── Statistiques d'évolution (7 derniers jours) ─────────────────
-router.get('/stats/evolution', async (req: AuthRequest, res: Response) => {
+// ─── Statistiques d'évolution (7 derniers jours) ──────────────────────
+router.get('/stats/evolution', async (_req: AuthRequest, res: Response) => {
   try {
     const result = await pool.query(`
-      SELECT 
+      SELECT
         d::date AS day,
         COALESCE(u.cnt, 0) AS new_users,
         COALESCE(r.cnt, 0) AS sales,
@@ -60,16 +59,16 @@ router.get('/stats/evolution', async (req: AuthRequest, res: Response) => {
   }
 });
 
-// ─── Liste des utilisateurs (avec recherche et tri) ──────────────
+// ─── Liste des utilisateurs (recherche + pagination) ──────────────────
 router.get('/users', async (req: AuthRequest, res: Response) => {
   try {
-    const search = req.query.search as string || '';
+    const search = (req.query.search as string) || '';
     const page = parseInt(req.query.page as string) || 1;
     const limit = 20;
     const offset = (page - 1) * limit;
 
     const users = await pool.query(
-      `SELECT id, email, name, role, language, premium_until, created_at
+      `SELECT id, email, name, role, language, premium_until, blocked, created_at
        FROM users
        WHERE email ILIKE $1 OR name ILIKE $1
        ORDER BY created_at DESC
@@ -92,7 +91,7 @@ router.get('/users', async (req: AuthRequest, res: Response) => {
   }
 });
 
-// ─── Bloquer / débloquer un utilisateur ──────────────────────────
+// ─── Bloquer / débloquer un utilisateur ────────────────────────────────
 router.put('/users/:id/block', async (req: AuthRequest, res: Response) => {
   try {
     const userId = parseInt(req.params.id);
@@ -100,9 +99,7 @@ router.put('/users/:id/block', async (req: AuthRequest, res: Response) => {
     const user = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
     if (user.rows.length === 0) return res.status(404).json({ error: 'Utilisateur non trouvé' });
 
-    // On utilise le champ role pour marquer bloqué (à améliorer avec un champ dédié)
-    const newRole = blocked ? 'blocked' : 'user';
-    await pool.query('UPDATE users SET role = $1 WHERE id = $2', [newRole, userId]);
+    await pool.query('UPDATE users SET blocked = $1 WHERE id = $2', [blocked, userId]);
     await logAction(req.userId!, blocked ? 'block_user' : 'unblock_user', 'user', userId);
     res.json({ message: blocked ? 'Utilisateur bloqué' : 'Utilisateur débloqué' });
   } catch (e: any) {
@@ -110,7 +107,7 @@ router.put('/users/:id/block', async (req: AuthRequest, res: Response) => {
   }
 });
 
-// ─── Activer / désactiver premium ──────────────────────────────────
+// ─── Activer / désactiver le premium ───────────────────────────────────
 router.put('/users/:id/premium', async (req: AuthRequest, res: Response) => {
   try {
     const userId = parseInt(req.params.id);
@@ -127,11 +124,11 @@ router.put('/users/:id/premium', async (req: AuthRequest, res: Response) => {
   }
 });
 
-// ─── Supprimer un utilisateur ───────────────────────────────────────
+// ─── Supprimer un utilisateur ──────────────────────────────────────────
 router.delete('/users/:id', async (req: AuthRequest, res: Response) => {
   try {
     const userId = parseInt(req.params.id);
-    if (userId === req.userId) return res.status(400).json({ error: 'Impossible de supprimer votre propre compte' });
+    if (userId === req.userId) return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte' });
     await pool.query('DELETE FROM users WHERE id = $1', [userId]);
     await logAction(req.userId!, 'delete_user', 'user', userId);
     res.json({ message: 'Utilisateur supprimé' });
@@ -140,21 +137,8 @@ router.delete('/users/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
-// ─── Envoyer une notification à tous les utilisateurs ────────────
-router.post('/notify', async (req: AuthRequest, res: Response) => {
-  try {
-    const { message } = req.body;
-    if (!message) return res.status(400).json({ error: 'Message requis' });
-    // Pour l'instant, on logue juste (les vraies notifications push viendront plus tard)
-    await logAction(req.userId!, 'notify_all', 'all', undefined, message);
-    res.json({ message: 'Notification enregistrée (push à implémenter)' });
-  } catch (e: any) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ─── Journal d'audit ──────────────────────────────────────────────────
-router.get('/audit', async (req: AuthRequest, res: Response) => {
+// ─── Journal d'audit ───────────────────────────────────────────────────
+router.get('/audit', async (_req: AuthRequest, res: Response) => {
   try {
     const logs = await pool.query(
       `SELECT a.*, u.name AS admin_name
@@ -170,4 +154,3 @@ router.get('/audit', async (req: AuthRequest, res: Response) => {
 });
 
 export default router;
-
