@@ -52,11 +52,18 @@ export default function AdminPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<'dashboard' | 'users' | 'audit'>('dashboard');
-  const [stats, setStats] = useState<Stats>({ totalUsers: 0, premiumUsers: 0, totalSales: 0, revenue: 0, newToday: 0 });
+  const [stats, setStats] = useState<Stats>({
+    totalUsers: 0,
+    premiumUsers: 0,
+    totalSales: 0,
+    revenue: 0,
+    newToday: 0,
+  });
   const [evolution, setEvolution] = useState<any[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState('');
   const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
     if (!loading && (!user || user.role !== 'admin')) router.push('/dashboard');
@@ -64,17 +71,29 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (user?.role === 'admin') {
-      api.get('/admin/stats').then(res => setStats(res.data));
-      api.get('/admin/stats/evolution').then(res => setEvolution(res.data));
+      // Charger les stats de base
+      api.get('/admin/stats')
+        .then(res => setStats(res.data))
+        .catch(() => {});
+
+      // Charger l'évolution
+      api.get('/admin/stats/evolution')
+        .then(res => setEvolution(res.data))
+        .catch(() => {})
+        .finally(() => setDataLoaded(true));
     }
   }, [user]);
 
   const fetchUsers = () => {
-    api.get(`/admin/users?search=${encodeURIComponent(search)}`).then(res => setUsers(res.data.users));
+    api.get(`/admin/users?search=${encodeURIComponent(search)}`)
+      .then(res => setUsers(res.data.users))
+      .catch(() => {});
   };
 
   const fetchLogs = () => {
-    api.get('/admin/audit').then(res => setLogs(res.data.logs));
+    api.get('/admin/audit')
+      .then(res => setLogs(res.data.logs))
+      .catch(() => {});
   };
 
   useEffect(() => {
@@ -124,6 +143,13 @@ export default function AdminPage() {
     ],
   };
 
+  // Valeurs sûres pour l'affichage
+  const revenue = typeof stats.revenue === 'number' ? stats.revenue : 0;
+  const totalSales = typeof stats.totalSales === 'number' ? stats.totalSales : 0;
+  const newToday = typeof stats.newToday === 'number' ? stats.newToday : 0;
+  const premiumUsers = typeof stats.premiumUsers === 'number' ? stats.premiumUsers : 0;
+  const totalUsers = typeof stats.totalUsers === 'number' ? stats.totalUsers : 0;
+
   return (
     <div className="p-4 max-w-5xl mx-auto">
       <div className="flex items-center mb-6">
@@ -133,7 +159,6 @@ export default function AdminPage() {
         <h1 className="text-2xl font-bold flex-1">🛡️ Administration</h1>
       </div>
 
-      {/* Navigation onglets */}
       <div className="flex gap-2 mb-6">
         {[
           { id: 'dashboard' as const, icon: BarChart3, label: 'Tableau de bord' },
@@ -152,16 +177,15 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {/* Contenu des onglets */}
       {tab === 'dashboard' && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {[
-              { label: 'Utilisateurs', value: stats.totalUsers, color: 'text-blue-600' },
-              { label: 'Premium', value: stats.premiumUsers, color: 'text-purple-600' },
-              { label: 'Aujourd\'hui', value: stats.newToday, color: 'text-green-600' },
-              { label: 'Ventes', value: stats.totalSales, color: 'text-orange-600' },
-              { label: 'Revenus', value: `${stats.revenue.toLocaleString()} F`, color: 'text-koko-orange' },
+              { label: 'Utilisateurs', value: totalUsers, color: 'text-blue-600' },
+              { label: 'Premium', value: premiumUsers, color: 'text-purple-600' },
+              { label: 'Aujourd\'hui', value: newToday, color: 'text-green-600' },
+              { label: 'Ventes', value: totalSales, color: 'text-orange-600' },
+              { label: 'Revenus', value: `${revenue.toLocaleString()} F`, color: 'text-koko-orange' },
             ].map(item => (
               <div key={item.label} className="bg-white dark:bg-koko-blue p-3 rounded-xl shadow-koko">
                 <p className="text-xs text-gray-500">{item.label}</p>
@@ -170,10 +194,12 @@ export default function AdminPage() {
             ))}
           </div>
 
-          <div className="bg-white dark:bg-koko-blue p-4 rounded-xl shadow-koko">
-            <h3 className="font-semibold mb-3">Évolution (7 jours)</h3>
-            <Line data={chartData} options={{ responsive: true, plugins: { legend: { position: 'bottom' } } }} />
-          </div>
+          {dataLoaded && evolution.length > 0 && (
+            <div className="bg-white dark:bg-koko-blue p-4 rounded-xl shadow-koko">
+              <h3 className="font-semibold mb-3">Évolution (7 jours)</h3>
+              <Line data={chartData} options={{ responsive: true, plugins: { legend: { position: 'bottom' } } }} />
+            </div>
+          )}
         </div>
       )}
 
