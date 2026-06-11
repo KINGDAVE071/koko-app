@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '@/lib/api';
 import { useLanguage } from '@/i18n/LanguageContext';
 import Link from 'next/link';
@@ -37,29 +37,55 @@ export default function BusinessDashboard() {
   });
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAmounts, setShowAmounts] = useState(true);
+  const [showAmounts, setShowAmounts] = useState(false);
   const [view, setView] = useState<'revenue' | 'profit'>('revenue');
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const [statsRes, productsRes] = await Promise.all([
+        api.get('/sales/stats'),
+        api.get('/products'),
+      ]);
+      setStats(statsRes.data);
+      const allProducts = productsRes.data.products || [];
+      setLowStockProducts(
+        allProducts.filter((p: Product) => p.min_stock > 0 && p.stock <= p.min_stock)
+      );
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [statsRes, productsRes] = await Promise.all([
-          api.get('/sales/stats'),
-          api.get('/products'),
-        ]);
-        setStats(statsRes.data);
-        const allProducts = productsRes.data.products || [];
-        setLowStockProducts(
-          allProducts.filter((p: Product) => p.min_stock > 0 && p.stock <= p.min_stock)
-        );
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
+    fetchStats();
+  }, [fetchStats]);
+
+  // Nettoyer le timer si le composant est démonté
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
-    fetchData();
   }, []);
+
+  const handleReveal = async () => {
+    // Annule l'ancien timer
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    // Relance le fetch pour avoir les données les plus fraîches
+    setLoading(true);
+    await fetchStats();
+    setLoading(false);
+    // Affiche les montants
+    setShowAmounts(true);
+    // Programme le masquage automatique après 10 secondes
+    timerRef.current = setTimeout(() => {
+      setShowAmounts(false);
+    }, 10000);
+  };
 
   if (loading) return <div className="p-4 text-center">Chargement...</div>;
 
@@ -78,20 +104,30 @@ export default function BusinessDashboard() {
           </h2>
           <div className="flex gap-2">
             {/* Bouton masquer / afficher */}
-            <button
-              onClick={() => setShowAmounts(!showAmounts)}
-              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-              title={showAmounts ? 'Masquer les montants' : 'Afficher les montants'}
-            >
-              {showAmounts ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
+            {showAmounts ? (
+              <button
+                onClick={() => setShowAmounts(false)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                title="Masquer les montants"
+              >
+                <EyeOff size={18} />
+              </button>
+            ) : (
+              <button
+                onClick={handleReveal}
+                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                title="Afficher les montants (actualise les données)"
+              >
+                <RefreshCw size={18} />
+              </button>
+            )}
             {/* Bouton basculer recette / bénéfice */}
             <button
               onClick={() => setView(view === 'revenue' ? 'profit' : 'revenue')}
               className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
               title="Basculer entre recette et bénéfice"
             >
-              <RefreshCw size={18} />
+              <Eye size={18} />
             </button>
           </div>
         </div>
@@ -104,6 +140,11 @@ export default function BusinessDashboard() {
         <p className="text-xs text-gray-400 mt-1">
           {stats.total_sales} vente{stats.total_sales > 1 ? 's' : ''} au total
         </p>
+        {showAmounts && (
+          <p className="text-xs text-gray-400 mt-1">
+            Masquage automatique dans 10 secondes
+          </p>
+        )}
       </div>
 
       {/* Alertes stock bas */}
