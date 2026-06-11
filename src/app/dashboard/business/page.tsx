@@ -8,7 +8,6 @@ import {
   ShoppingCart,
   Package,
   FileText,
-  TrendingUp,
   AlertTriangle,
   Eye,
   EyeOff,
@@ -39,6 +38,7 @@ export default function BusinessDashboard() {
   const [loading, setLoading] = useState(true);
   const [showAmounts, setShowAmounts] = useState(false);
   const [view, setView] = useState<'revenue' | 'profit'>('revenue');
+  const [refreshing, setRefreshing] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchStats = useCallback(async () => {
@@ -63,28 +63,37 @@ export default function BusinessDashboard() {
     fetchStats();
   }, [fetchStats]);
 
-  // Nettoyer le timer si le composant est démonté
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
 
-  const handleReveal = async () => {
-    // Annule l'ancien timer
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-    // Relance le fetch pour avoir les données les plus fraîches
-    setLoading(true);
+  // Bouton Actualiser : recharge simplement les données
+  const handleRefresh = async () => {
+    setRefreshing(true);
     await fetchStats();
-    setLoading(false);
-    // Affiche les montants
-    setShowAmounts(true);
-    // Programme le masquage automatique après 10 secondes
-    timerRef.current = setTimeout(() => {
+    setRefreshing(false);
+  };
+
+  // Bouton Révéler / Masquer
+  const handleToggleVisibility = async () => {
+    if (showAmounts) {
+      // Masquer immédiatement
       setShowAmounts(false);
-    }, 10000);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    } else {
+      // Révéler : on actualise d'abord
+      await fetchStats();
+      setShowAmounts(true);
+      // Programmer le masquage automatique après 10 secondes
+      timerRef.current = setTimeout(() => {
+        setShowAmounts(false);
+      }, 10000);
+    }
   };
 
   if (loading) return <div className="p-4 text-center">Chargement...</div>;
@@ -103,31 +112,30 @@ export default function BusinessDashboard() {
             {view === 'revenue' ? 'Chiffre d’affaires' : 'Bénéfice'}
           </h2>
           <div className="flex gap-2">
-            {/* Bouton masquer / afficher */}
-            {showAmounts ? (
-              <button
-                onClick={() => setShowAmounts(false)}
-                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                title="Masquer les montants"
-              >
-                <EyeOff size={18} />
-              </button>
-            ) : (
-              <button
-                onClick={handleReveal}
-                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                title="Afficher les montants (actualise les données)"
-              >
-                <RefreshCw size={18} />
-              </button>
-            )}
+            {/* Bouton Actualiser */}
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+              title="Actualiser les données"
+            >
+              <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
+            </button>
+            {/* Bouton Révéler / Masquer */}
+            <button
+              onClick={handleToggleVisibility}
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+              title={showAmounts ? 'Masquer les montants' : 'Révéler les montants'}
+            >
+              {showAmounts ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
             {/* Bouton basculer recette / bénéfice */}
             <button
               onClick={() => setView(view === 'revenue' ? 'profit' : 'revenue')}
               className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
               title="Basculer entre recette et bénéfice"
             >
-              <Eye size={18} />
+              <RefreshCw size={18} /> {/* On garde une icône différente, mais tu peux changer */}
             </button>
           </div>
         </div>
