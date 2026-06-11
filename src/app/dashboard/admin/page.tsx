@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Trash2, Shield, Search, BarChart3, Users, Activity } from 'lucide-react';
+import { ArrowLeft, Trash2, Shield, Search, BarChart3, Users, Activity, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Line } from 'react-chartjs-2';
@@ -21,6 +21,7 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
+// Types
 interface Stats {
   totalUsers: number;
   premiumUsers: number;
@@ -36,6 +37,7 @@ interface User {
   role: string;
   created_at: string;
   premium_until: string | null;
+  blocked: boolean;
 }
 
 interface AuditLog {
@@ -52,46 +54,56 @@ export default function AdminPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<'dashboard' | 'users' | 'audit'>('dashboard');
-  const [stats, setStats] = useState<Stats>({
-    totalUsers: 0,
-    premiumUsers: 0,
-    totalSales: 0,
-    revenue: 0,
-    newToday: 0,
-  });
+  const [stats, setStats] = useState<Stats>({ totalUsers: 0, premiumUsers: 0, totalSales: 0, revenue: 0, newToday: 0 });
   const [evolution, setEvolution] = useState<any[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState('');
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
+  // Redirection si non admin
   useEffect(() => {
-    if (!loading && (!user || user.role !== 'admin')) router.push('/dashboard');
+    if (!loading && (!user || user.role !== 'admin')) {
+      router.push('/dashboard');
+    }
   }, [user, loading, router]);
 
+  // Charger stats et évolution
   useEffect(() => {
-    if (user?.role === 'admin') {
-      // Charger les stats de base
-      api.get('/admin/stats')
-        .then(res => setStats(res.data))
-        .catch(() => {});
-      // Charger l'évolution
-      api.get('/admin/stats/evolution')
-        .then(res => {
-          setEvolution(res.data);
-          setDataLoaded(true);
-        })
-        .catch(() => setDataLoaded(true));
-    }
+    if (user?.role !== 'admin') return;
+    api.get('/admin/stats').then(res => setStats(res.data)).catch(() => {});
+    api.get('/admin/stats/evolution')
+      .then(res => { setEvolution(res.data); setDataLoaded(true); })
+      .catch(() => setDataLoaded(true));
   }, [user]);
 
-  const fetchUsers = useCallback(async () => {
+  // Recherche utilisateurs (immédiate avec annulation)
+  const fetchUsers = useCallback(async (searchTerm: string) => {
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setSearchLoading(true);
     try {
-      const res = await api.get(`/admin/users?search=${encodeURIComponent(search)}`);
+      const res = await api.get(`/admin/users?search=${encodeURIComponent(searchTerm)}`, {
+        signal: controller.signal,
+      });
       setUsers(res.data.users);
-    } catch {}
-  }, [search]);
+    } catch (error: any) {
+      if (error.name !== 'CanceledError' && error.name !== 'AbortError') {
+        toast.error('Erreur lors de la recherche');
+      }
+    } finally {
+      setSearchLoading(false);
+    }
+  }, []);
 
+  useEffect(() => {
+    if (tab === 'users') fetchUsers(search);
+  }, [search, tab, fetchUsers]);
+
+  // Charger les logs
   const fetchLogs = useCallback(async () => {
     try {
       const res = await api.get('/admin/audit');
@@ -99,71 +111,55 @@ export default function AdminPage() {
     } catch {}
   }, []);
 
-  // Recherche automatique après 300ms d'inactivité
   useEffect(() => {
-    if (tab !== 'users') return;
-    const timer = setTimeout(() => {
-      fetchUsers();
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search, tab, fetchUsers]);
-
-  useEffect(() => {
-    if (tab === 'users') fetchUsers();
     if (tab === 'audit') fetchLogs();
-  }, [tab, fetchUsers, fetchLogs]);
+  }, [tab, fetchLogs]);
 
+  // Actions
   const handleDeleteUser = async (id: number) => {
     if (!confirm('Supprimer cet utilisateur ?')) return;
     await api.delete(`/admin/users/${id}`);
     toast.success('Utilisateur supprimé');
-    fetchUsers();
+    fetchUsers(search);
   };
 
   const handleBlockUser = async (id: number, block: boolean) => {
-    await api.put(`/admin/users/${id}/block`, { blocked: block });
-    toast.success(block ? 'Utilisateur bloqué' : 'Utilisateur débloqué');
-    fetchUsers();
+    try {
+      await api.put(`/admin/users/${id}/block`, { blocked: block });
+      toast.success(block ? 'Utilisateur bloqué' : 'Utilisateur débloqué');
+      fetchUsers(search);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Erreur');
+    }
   };
 
   const handlePremium = async (id: number, enable: boolean) => {
     await api.put(`/admin/users/${id}/premium`, { premium: enable });
     toast.success(enable ? 'Premium activé' : 'Premium désactivé');
-    fetchUsers();
+    fetchUsers(search);
   };
 
-  if (loading || !user) return <div>Chargement...</div>;
+  if (loading || !user) return <div className="p-4 text-center">Chargement...</div>;
   if (user.role !== 'admin') return null;
 
+  // Données du graphique
   const chartData = {
     labels: evolution.map(e => e.day),
     datasets: [
-      {
-        label: 'Nouveaux utilisateurs',
-        data: evolution.map(e => e.new_users),
-        borderColor: '#E67E22',
-        backgroundColor: 'rgba(230,126,34,0.1)',
-        tension: 0.3,
-      },
-      {
-        label: 'Ventes',
-        data: evolution.map(e => e.sales),
-        borderColor: '#22C55E',
-        backgroundColor: 'rgba(34,197,94,0.1)',
-        tension: 0.3,
-      },
+      { label: 'Nouveaux utilisateurs', data: evolution.map(e => e.new_users), borderColor: '#E67E22', backgroundColor: 'rgba(230,126,34,0.1)', tension: 0.3 },
+      { label: 'Ventes', data: evolution.map(e => e.sales), borderColor: '#22C55E', backgroundColor: 'rgba(34,197,94,0.1)', tension: 0.3 },
     ],
   };
 
-  // Valeurs sûres pour l'affichage
-  const revenue = typeof stats.revenue === 'number' ? stats.revenue : 0;
-  const totalSales = typeof stats.totalSales === 'number' ? stats.totalSales : 0;
-  const newToday = typeof stats.newToday === 'number' ? stats.newToday : 0;
-  const premiumUsers = typeof stats.premiumUsers === 'number' ? stats.premiumUsers : 0;
-  const totalUsers = typeof stats.totalUsers === 'number' ? stats.totalUsers : 0;
+  const rev = stats.revenue ?? 0;
+  const tSales = stats.totalSales ?? 0;
+  const nToday = stats.newToday ?? 0;
+  const pUsers = stats.premiumUsers ?? 0;
+  const tUsers = stats.totalUsers ?? 0;
 
   return (
     <div className="p-4 max-w-5xl mx-auto">
+      {/* En-tête */}
       <div className="flex items-center mb-6">
         <Link href="/dashboard" className="mr-3 text-gray-500 hover:text-koko-orange">
           <ArrowLeft size={24} />
@@ -171,6 +167,7 @@ export default function AdminPage() {
         <h1 className="text-2xl font-bold flex-1">🛡️ Administration</h1>
       </div>
 
+      {/* Navigation onglets */}
       <div className="flex gap-2 mb-6">
         {[
           { id: 'dashboard' as const, icon: BarChart3, label: 'Tableau de bord' },
@@ -189,15 +186,16 @@ export default function AdminPage() {
         ))}
       </div>
 
+      {/* Onglet Tableau de bord */}
       {tab === 'dashboard' && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {[
-              { label: 'Utilisateurs', value: totalUsers, color: 'text-blue-600' },
-              { label: 'Premium', value: premiumUsers, color: 'text-purple-600' },
-              { label: 'Aujourd\'hui', value: newToday, color: 'text-green-600' },
-              { label: 'Ventes', value: totalSales, color: 'text-orange-600' },
-              { label: 'Revenus', value: `${revenue.toLocaleString()} F`, color: 'text-koko-orange' },
+              { label: 'Utilisateurs', value: tUsers, color: 'text-blue-600' },
+              { label: 'Premium', value: pUsers, color: 'text-purple-600' },
+              { label: 'Aujourd\'hui', value: nToday, color: 'text-green-600' },
+              { label: 'Ventes', value: tSales, color: 'text-orange-600' },
+              { label: 'Revenus', value: `${rev.toLocaleString()} F`, color: 'text-koko-orange' },
             ].map(item => (
               <div key={item.label} className="bg-white dark:bg-koko-blue p-3 rounded-xl shadow-koko">
                 <p className="text-xs text-gray-500">{item.label}</p>
@@ -205,7 +203,6 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
-
           {dataLoaded && evolution.length > 0 && (
             <div className="bg-white dark:bg-koko-blue p-4 rounded-xl shadow-koko">
               <h3 className="font-semibold mb-3">Évolution (7 jours)</h3>
@@ -213,11 +210,12 @@ export default function AdminPage() {
             </div>
           )}
           {dataLoaded && evolution.length === 0 && (
-            <p className="text-center text-gray-500 py-8">Pas encore de données pour afficher le graphique.</p>
+            <p className="text-center text-gray-500 py-8">Pas encore de données pour le graphique.</p>
           )}
         </div>
       )}
 
+      {/* Onglet Utilisateurs */}
       {tab === 'users' && (
         <div>
           <div className="flex gap-2 mb-4">
@@ -231,16 +229,21 @@ export default function AdminPage() {
                 className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
               />
             </div>
-            <button onClick={fetchUsers} className="px-4 py-2 bg-koko-orange text-white rounded-lg">
+            <button onClick={() => fetchUsers(search)} className="px-4 py-2 bg-koko-orange text-white rounded-lg flex items-center gap-2">
+              {searchLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
               Chercher
             </button>
           </div>
-
+          {searchLoading && <p className="text-sm text-gray-500 mb-2">Recherche en cours...</p>}
           <div className="space-y-2">
             {users.map(u => (
               <div key={u.id} className="bg-white dark:bg-koko-blue p-3 rounded-xl shadow-koko flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <p className="font-medium">{u.name} {u.role === 'admin' && <Shield className="inline w-4 h-4 text-koko-orange" />}</p>
+                  <p className="font-medium flex items-center gap-2">
+                    {u.name}
+                    {u.role === 'admin' && <Shield className="w-4 h-4 text-koko-orange" />}
+                    {u.blocked && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Bloqué</span>}
+                  </p>
                   <p className="text-sm text-gray-500">{u.email}</p>
                   <p className="text-xs text-gray-400">Inscrit le {new Date(u.created_at).toLocaleDateString()}</p>
                 </div>
@@ -248,8 +251,8 @@ export default function AdminPage() {
                   <button onClick={() => handlePremium(u.id, !u.premium_until)} className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-lg">
                     {u.premium_until ? 'Retirer Premium' : 'Activer Premium'}
                   </button>
-                  <button onClick={() => handleBlockUser(u.id, u.role !== 'blocked')} className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-lg">
-                    {u.role === 'blocked' ? 'Débloquer' : 'Bloquer'}
+                  <button onClick={() => handleBlockUser(u.id, !u.blocked)} className={`px-2 py-1 text-xs rounded-lg ${u.blocked ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                    {u.blocked ? 'Débloquer' : 'Bloquer'}
                   </button>
                   {u.id !== user.id && (
                     <button onClick={() => handleDeleteUser(u.id)} className="text-red-500"><Trash2 size={16} /></button>
@@ -257,13 +260,14 @@ export default function AdminPage() {
                 </div>
               </div>
             ))}
-            {users.length === 0 && (
+            {users.length === 0 && !searchLoading && (
               <p className="text-gray-500 text-center py-4">Aucun utilisateur trouvé.</p>
             )}
           </div>
         </div>
       )}
 
+      {/* Onglet Journal */}
       {tab === 'audit' && (
         <div className="space-y-2">
           {logs.map(log => (
