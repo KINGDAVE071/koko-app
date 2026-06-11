@@ -39,6 +39,8 @@ interface User {
 }
 
 interface AuditLog {
+  target_type?: string;
+  target_id?: number;
   id: number;
   admin_name: string;
   action: string;
