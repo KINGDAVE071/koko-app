@@ -1,40 +1,36 @@
 import type { Metadata, Viewport } from "next";
-import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "KOKO - Votre quotidien, simplifié",
-  description: "Pilulier, convertisseur, quittance. Gratuit, multilingue, sans connexion.",
+  description: "Pilulier, convertisseur, quittance, business. Gratuit, multilingue, sans connexion.",
   manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "KOKO",
+  icons: {
+    icon: [
+      { url: "/icons/favicon.ico", sizes: "any" },
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/icons/icon-192x192.png",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#E67E22",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  themeColor: "#0F172A",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      <head>
-        <link rel="icon" href="/icons/icon-192.svg" type="image/svg+xml" />
-      </head>
-      <body className="font-sans antialiased bg-koko-cream dark:bg-koko-cream-dark text-koko-text dark:text-koko-text-dark">
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+      <body className="bg-koko-dark-bg text-white antialiased">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} forcedTheme="dark">
           <LanguageProvider>
             <AuthProvider>
               {children}

@@ -41,71 +41,70 @@ function RegisterForm() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-koko-bg dark:bg-koko-dark-bg">
+      <div className="min-h-screen flex items-center justify-center bg-koko-dark-bg">
         <div className="flex flex-col items-center text-center">
           <CheckCircle2 size={64} className="text-green-500 mb-4" />
-          <h2 className="text-xl font-bold text-koko-text dark:text-white">
+          <h2 className="text-xl font-bold text-white">
             {t('register.success') || 'Compte créé avec succès !'}
           </h2>
-          <p className="text-gray-500 dark:text-gray-400">Redirection vers la connexion...</p>
+          <p className="text-gray-400">Redirection vers la connexion...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-koko-bg dark:bg-koko-dark-bg" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-      <div className="w-full max-w-md p-8 rounded-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border border-koko-orange/20 dark:border-koko-orange/30 shadow-lg">
-        {/* Logo */}
+    <div className="min-h-screen flex items-center justify-center px-4 bg-koko-dark-bg" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="w-full max-w-md p-8 rounded-2xl bg-koko-dark-surface/80 backdrop-blur-lg border border-koko-orange/20 shadow-2xl">
         <div className="flex flex-col items-center mb-8">
           <KokoLogo size={56} />
-          <h1 className="mt-4 text-2xl font-extrabold text-koko-text dark:text-white">
+          <h1 className="mt-4 text-2xl font-extrabold text-white">
             {t('register.title')}
           </h1>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm text-center">
+          <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm text-center">
             {error}
           </div>
         )}
 
         <div className="space-y-4">
           <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
             <input
               type="text"
               placeholder={t('register.name')}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-koko-text dark:text-white placeholder-gray-400 focus:outline-none focus:border-koko-orange focus:ring-2 focus:ring-koko-orange/20 transition"
+              className="w-full pl-10 pr-4 py-3 rounded-xl bg-koko-dark-surface-2 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-koko-orange focus:ring-2 focus:ring-koko-orange/20 transition"
             />
           </div>
 
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
             <input
               type="email"
               placeholder={t('register.email')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-koko-text dark:text-white placeholder-gray-400 focus:outline-none focus:border-koko-orange focus:ring-2 focus:ring-koko-orange/20 transition"
+              className="w-full pl-10 pr-4 py-3 rounded-xl bg-koko-dark-surface-2 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-koko-orange focus:ring-2 focus:ring-koko-orange/20 transition"
             />
           </div>
 
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
             <input
               type={showPassword ? 'text' : 'password'}
               placeholder={t('register.password') || 'Mot de passe'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-12 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-koko-text dark:text-white placeholder-gray-400 focus:outline-none focus:border-koko-orange focus:ring-2 focus:ring-koko-orange/20 transition"
+              className="w-full pl-10 pr-12 py-3 rounded-xl bg-koko-dark-surface-2 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-koko-orange focus:ring-2 focus:ring-koko-orange/20 transition"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
               tabIndex={-1}
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -116,7 +115,7 @@ function RegisterForm() {
             {t('register.submit')}
           </button>
 
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-center text-sm text-gray-500">
             {t('register.hasAccount')}{' '}
             <Link href="/login" className="text-koko-orange font-semibold hover:underline">
               {t('register.loginLink')}
@@ -131,8 +130,8 @@ function RegisterForm() {
 export default function RegisterPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-koko-bg dark:bg-koko-dark-bg">
-        <div className="text-koko-text dark:text-white">Chargement...</div>
+      <div className="min-h-screen flex items-center justify-center bg-koko-dark-bg text-white">
+        Chargement...
       </div>
     }>
       <RegisterForm />
