@@ -6,7 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { toast } from 'sonner';
-import { Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Lock, CheckCircle2 } from 'lucide-react';
+import KokoLogo from '@/components/KokoLogo';
 
 function RegisterForm() {
   const [name, setName] = useState('');
@@ -20,46 +21,30 @@ function RegisterForm() {
   const searchParams = useSearchParams();
   const { t, lang } = useLanguage();
 
-  const fromGoogle = searchParams.get('fromGoogle') === 'true';
-  const googleEmail = searchParams.get('email') || '';
-
-  // Pré-remplir l'email si venant de Google
   useEffect(() => {
-    if (googleEmail) setEmail(googleEmail);
-  }, [googleEmail]);
+    const emailParam = searchParams.get('email');
+    if (emailParam) setEmail(emailParam);
+  }, [searchParams]);
 
   const handleClick = async () => {
     setError('');
-
-    if (!name.trim()) {
-      setError((t('register.name') || 'Nom') + ' est requis.');
-      return;
-    }
-    if (!email.trim()) {
-      setError((t('register.email') || 'Email') + ' est requis.');
-      return;
-    }
-    if (!password) {
-      setError((t('register.password') || 'Mot de passe') + ' est requis.');
-      return;
-    }
-
+    if (!name.trim()) { setError(t('register.name') + ' est requis.'); return; }
+    if (!email.trim()) { setError(t('register.email') + ' est requis.'); return; }
+    if (!password) { setError((t('register.password') || 'Mot de passe') + ' est requis.'); return; }
     try {
       await register(email, password, name);
       setSuccess(true);
       toast.success(t('register.success') || 'Compte créé avec succès !');
       setTimeout(() => router.push('/login'), 2000);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Erreur inscription');
-    }
+    } catch (err: any) { setError(err.response?.data?.error || 'Erreur inscription'); }
   };
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-koko-cream dark:bg-koko-cream-dark">
+      <div className="min-h-screen flex items-center justify-center bg-koko-bg dark:bg-koko-dark-bg">
         <div className="flex flex-col items-center text-center">
-          <CheckCircle2 size={64} className="text-koko-success mb-4" />
-          <h2 className="text-xl font-bold text-koko-text dark:text-white mb-2">
+          <CheckCircle2 size={64} className="text-green-500 mb-4" />
+          <h2 className="text-xl font-bold text-koko-text dark:text-white">
             {t('register.success') || 'Compte créé avec succès !'}
           </h2>
           <p className="text-gray-500 dark:text-gray-400">Redirection vers la connexion...</p>
@@ -69,38 +54,53 @@ function RegisterForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-      <div className="max-w-md w-full bg-white dark:bg-koko-blue rounded-2xl p-8 shadow-koko-lg">
-        <h1 className="text-3xl font-bold text-center mb-6">🌅 {t('app.name')}</h1>
-        {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-        {fromGoogle && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-center">
-            Créez un mot de passe pour finaliser votre inscription avec Google.
-          </p>
+    <div className="min-h-screen flex items-center justify-center px-4 bg-koko-bg dark:bg-koko-dark-bg" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="w-full max-w-md p-8 rounded-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border border-koko-orange/20 dark:border-koko-orange/30 shadow-lg">
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-8">
+          <KokoLogo size={56} />
+          <h1 className="mt-4 text-2xl font-extrabold text-koko-text dark:text-white">
+            {t('register.title')}
+          </h1>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm text-center">
+            {error}
+          </div>
         )}
+
         <div className="space-y-4">
-          <input
-            type="text"
-            placeholder={t('register.name')}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          />
-          <input
-            type="email"
-            placeholder={t('register.email')}
-            value={email}
-            onChange={(e) => !fromGoogle && setEmail(e.target.value)}
-            readOnly={fromGoogle}
-            className={`w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white ${fromGoogle ? 'opacity-75 cursor-not-allowed' : ''}`}
-          />
           <div className="relative">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder={t('register.name')}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-koko-text dark:text-white placeholder-gray-400 focus:outline-none focus:border-koko-orange focus:ring-2 focus:ring-koko-orange/20 transition"
+            />
+          </div>
+
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="email"
+              placeholder={t('register.email')}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-koko-text dark:text-white placeholder-gray-400 focus:outline-none focus:border-koko-orange focus:ring-2 focus:ring-koko-orange/20 transition"
+            />
+          </div>
+
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type={showPassword ? 'text' : 'password'}
               placeholder={t('register.password') || 'Mot de passe'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              className="w-full pl-10 pr-12 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-koko-text dark:text-white placeholder-gray-400 focus:outline-none focus:border-koko-orange focus:ring-2 focus:ring-koko-orange/20 transition"
             />
             <button
               type="button"
@@ -108,19 +108,21 @@ function RegisterForm() {
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               tabIndex={-1}
             >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
           </div>
-          <button onClick={handleClick} className="w-full py-3 bg-koko-orange text-white font-bold rounded-xl hover:bg-koko-orange-dark transition">
+
+          <button onClick={handleClick} className="w-full py-3 rounded-xl bg-koko-orange hover:bg-koko-orange-dark text-white font-bold transition-colors">
             {t('register.submit')}
           </button>
+
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+            {t('register.hasAccount')}{' '}
+            <Link href="/login" className="text-koko-orange font-semibold hover:underline">
+              {t('register.loginLink')}
+            </Link>
+          </p>
         </div>
-        <p className="text-center mt-4 text-sm text-gray-500 dark:text-gray-400">
-          {t('register.hasAccount')}{' '}
-          <Link href="/login" className="text-koko-orange font-medium">
-            {t('register.loginLink')}
-          </Link>
-        </p>
       </div>
     </div>
   );
@@ -129,8 +131,8 @@ function RegisterForm() {
 export default function RegisterPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin text-4xl">🌅</div>
+      <div className="min-h-screen flex items-center justify-center bg-koko-bg dark:bg-koko-dark-bg">
+        <div className="text-koko-text dark:text-white">Chargement...</div>
       </div>
     }>
       <RegisterForm />
