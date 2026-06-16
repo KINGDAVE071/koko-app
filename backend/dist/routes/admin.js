@@ -145,4 +145,36 @@ router.get('/audit', async (_req, res) => {
     }
 });
 exports.default = router;
+// GET /api/admin/settings
+router.get('/settings', async (req, res) => {
+    try {
+        const result = await database_1.default.query('SELECT * FROM settings');
+        const settings = {};
+        result.rows.forEach((row) => settings[row.key] = row.value);
+        res.json(settings);
+    }
+    catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+// PUT /api/admin/settings
+router.put('/settings', async (req, res) => {
+    try {
+        const { privacy_policy, terms_of_service, contact_email } = req.body;
+        if (privacy_policy !== undefined) {
+            await database_1.default.query(`INSERT INTO settings (key, value) VALUES ('privacy_policy', $1) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()`, [privacy_policy]);
+        }
+        if (terms_of_service !== undefined) {
+            await database_1.default.query(`INSERT INTO settings (key, value) VALUES ('terms_of_service', $1) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()`, [terms_of_service]);
+        }
+        if (contact_email !== undefined) {
+            await database_1.default.query(`INSERT INTO settings (key, value) VALUES ('contact_email', $1) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()`, [contact_email]);
+        }
+        await logAction(req.userId, 'update_settings', 'settings');
+        res.json({ message: 'Paramètres mis à jour' });
+    }
+    catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
 //# sourceMappingURL=admin.js.map

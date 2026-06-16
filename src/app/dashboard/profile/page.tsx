@@ -12,10 +12,9 @@ export default function ProfilePage() {
   const { t, lang, setLang } = useLanguage();
   const [logo, setLogo] = useState<string | null>(user?.logo || null);
   const [loadingLogo, setLoadingLogo] = useState(false);
-  const [darkMode, setDarkMode] = useState(true); // sera initialisé depuis le thème actuel
+  const [darkMode, setDarkMode] = useState(true);
 
   useEffect(() => {
-    // Détecter le mode sombre actuel
     const isDark = document.documentElement.classList.contains('dark');
     setDarkMode(isDark);
   }, []);
@@ -58,7 +57,7 @@ export default function ProfilePage() {
     <div className="p-4 min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A]">
       <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">⚙️ Paramètres</h1>
 
-      {/* ─── Profil utilisateur ─────────────────────────────── */}
+      {/* Profil utilisateur */}
       <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border border-koko-orange/20 rounded-2xl shadow-lg p-5 mb-6">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-koko-orange flex items-center justify-center text-white text-2xl font-bold">
@@ -76,7 +75,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ─── Réglages ──────────────────────────────────────── */}
+      {/* Réglages */}
       <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border border-koko-orange/20 rounded-2xl shadow-lg p-5 mb-6 space-y-5">
         <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
           <Globe size={20} /> {t('profile.language')}
@@ -146,7 +145,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ─── Légal & Contact ───────────────────────────────── */}
+      {/* Légal & Contact */}
       <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border border-koko-orange/20 rounded-2xl shadow-lg p-5 mb-6 space-y-4">
         <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
           <Shield size={20} /> Informations légales
@@ -182,16 +181,13 @@ export default function ProfilePage() {
               <Mail size={16} /> Contact développeur
             </h4>
             <p className="text-gray-500 dark:text-gray-400 mt-1">
-              Email : <a href="mailto:alimossidavid071@gmail.com" className="text-koko-orange hover:underline">alimossidavid071@gmail.com</a>
-            </p>
-            <p className="text-gray-500 dark:text-gray-400">
-              WhatsApp : <a href="https://wa.me/227XXXXXXXX" target="_blank" rel="noopener noreferrer" className="text-koko-orange hover:underline">+227 XX XX XX XX</a> (à compléter)
+              <a href="mailto:alimossidavid071@gmail.com" className="text-koko-orange hover:underline">alimossidavid071@gmail.com</a>
             </p>
           </div>
         </div>
       </div>
 
-      {/* ─── Copyright ──────────────────────────────────────── */}
+      {/* Copyright */}
       <div className="text-center mb-6">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/50 dark:bg-gray-900/50 backdrop-blur-md border border-koko-orange/10">
           <Copyright size={14} className="text-gray-500" />
@@ -201,7 +197,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ─── Déconnexion ───────────────────────────────────── */}
       <button
         onClick={logout}
         className="w-full py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-colors flex items-center justify-center gap-2"

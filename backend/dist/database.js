@@ -141,6 +141,11 @@ async function createTables() {
         details TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
     `);
         // Colonnes ajoutées plus tard
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS logo TEXT`);

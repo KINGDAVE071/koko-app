@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Trash2, Shield, Search, BarChart3, Users, Activity, Loader2 } from 'lucide-react';
+import { ArrowLeft, Trash2, Shield, Search, BarChart3, Users, Activity, Loader2, Settings, Save } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Line } from 'react-chartjs-2';
@@ -15,6 +15,7 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
+// Types existants (inchangés)...
 interface Stats { totalUsers:number; premiumUsers:number; totalSales:number; revenue:number; newToday:number; }
 interface User { id:number; email:string; name:string; role:string; created_at:string; premium_until:string|null; blocked:boolean; }
 interface AuditLog { id:number; admin_name:string; action:string; target_type?:string; target_id?:number; details?:string; created_at:string; }
@@ -22,7 +23,7 @@ interface AuditLog { id:number; admin_name:string; action:string; target_type?:s
 export default function AdminPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [tab, setTab] = useState<'dashboard'|'users'|'audit'>('dashboard');
+  const [tab, setTab] = useState<'dashboard'|'users'|'audit'|'settings'>('dashboard');
   const [stats, setStats] = useState<Stats>({ totalUsers:0, premiumUsers:0, totalSales:0, revenue:0, newToday:0 });
   const [evolution, setEvolution] = useState<any[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -32,6 +33,15 @@ export default function AdminPage() {
   const [searchLoading, setSearchLoading] = useState(false);
   const abortRef = useRef<AbortController|null>(null);
 
+  // États pour les paramètres légaux
+  const [legalSettings, setLegalSettings] = useState({
+    privacy_policy: '',
+    terms_of_service: '',
+    contact_email: '',
+  });
+  const [loadingSettings, setLoadingSettings] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+
   useEffect(() => { if (!loading && (!user || user.role !== 'admin')) router.push('/dashboard'); }, [user, loading, router]);
 
   useEffect(() => {
@@ -40,6 +50,14 @@ export default function AdminPage() {
       api.get('/admin/stats/evolution')
         .then(res => { setEvolution(res.data); setDataLoaded(true); })
         .catch(() => setDataLoaded(true));
+      // Charger les paramètres légaux
+      api.get('/admin/settings')
+        .then(res => setLegalSettings({
+          privacy_policy: res.data.privacy_policy || '',
+          terms_of_service: res.data.terms_of_service || '',
+          contact_email: res.data.contact_email || 'alimossidavid071@gmail.com',
+        }))
+        .catch(() => {});
     }
   }, [user]);
 
@@ -72,6 +90,19 @@ export default function AdminPage() {
     await api.put(`/admin/users/${id}/premium`, { premium: enable }); toast.success(enable ? 'Premium activé' : 'Désactivé'); fetchUsers(search);
   };
 
+  // Sauvegarder les paramètres légaux
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      await api.put('/admin/settings', legalSettings);
+      toast.success('Paramètres légaux mis à jour');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Erreur');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   if (loading || !user) return <div className="p-4 text-center text-gray-500">Chargement...</div>;
   if (user.role !== 'admin') return null;
 
@@ -92,11 +123,12 @@ export default function AdminPage() {
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white flex-1">🛡️ Administration</h1>
       </div>
 
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-6 flex-wrap">
         {[
           { id: 'dashboard' as const, icon: BarChart3, label: 'Tableau de bord' },
           { id: 'users' as const, icon: Users, label: 'Utilisateurs' },
           { id: 'audit' as const, icon: Activity, label: 'Journal' },
+          { id: 'settings' as const, icon: Settings, label: 'Paramètres' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
@@ -107,6 +139,7 @@ export default function AdminPage() {
         ))}
       </div>
 
+      {/* Contenu des onglets existants (dashboard, users, audit) – repris intégralement pour ne pas briser le code, mais je les raccourcis ici pour ne pas dupliquer. En pratique, il faut conserver le code complet des onglets précédents. */}
       {tab === 'dashboard' && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
@@ -183,6 +216,48 @@ export default function AdminPage() {
             </div>
           ))}
           {logs.length === 0 && <p className="text-gray-500 text-center py-4">Aucune entrée dans le journal.</p>}
+        </div>
+      )}
+
+      {tab === 'settings' && (
+        <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border border-koko-orange/20 rounded-2xl shadow-lg p-6 space-y-5">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+            <Settings size={24} /> Paramètres légaux
+          </h2>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Politique de confidentialité</label>
+            <textarea
+              value={legalSettings.privacy_policy}
+              onChange={e => setLegalSettings({...legalSettings, privacy_policy: e.target.value})}
+              rows={5}
+              className="w-full p-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white focus:outline-none focus:border-koko-orange transition"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Conditions d'utilisation</label>
+            <textarea
+              value={legalSettings.terms_of_service}
+              onChange={e => setLegalSettings({...legalSettings, terms_of_service: e.target.value})}
+              rows={5}
+              className="w-full p-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white focus:outline-none focus:border-koko-orange transition"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email de contact</label>
+            <input
+              type="email"
+              value={legalSettings.contact_email}
+              onChange={e => setLegalSettings({...legalSettings, contact_email: e.target.value})}
+              className="w-full p-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white focus:outline-none focus:border-koko-orange transition"
+            />
+          </div>
+          <button
+            onClick={handleSaveSettings}
+            disabled={savingSettings}
+            className="w-full py-3 rounded-xl bg-koko-orange hover:bg-koko-orange-dark text-white font-bold transition flex items-center justify-center gap-2"
+          >
+            <Save size={18} /> {savingSettings ? 'Enregistrement...' : 'Enregistrer les modifications'}
+          </button>
         </div>
       )}
     </div>
