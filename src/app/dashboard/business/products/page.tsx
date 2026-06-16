@@ -48,9 +48,9 @@ export default function ProductsPage() {
           <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border border-koko-orange/20 rounded-2xl shadow-2xl p-5 w-full max-w-md mx-4">
             <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">{editId ? 'Modifier' : 'Nouveau'}</h3>
             <form onSubmit={handleSubmit} className="space-y-3">
-              <input placeholder="Nom" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:border-koko-orange transition" required />
+              <input placeholder={t("business.description")} value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:border-koko-orange transition" required />
               <div className="grid grid-cols-2 gap-2">
-                <input type="number" placeholder="Prix vente" value={form.price} onChange={e => setForm({...form, price: e.target.value})} className="w-full p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:border-koko-orange transition" required />
+                <input type="number" placeholder={t("business.unitPrice")} value={form.price} onChange={e => setForm({...form, price: e.target.value})} className="w-full p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:border-koko-orange transition" required />
                 <input type="number" placeholder="Prix achat" value={form.cost_price} onChange={e => setForm({...form, cost_price: e.target.value})} className="w-full p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:border-koko-orange transition" />
               </div>
               <div className="grid grid-cols-2 gap-2">
