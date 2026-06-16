@@ -10,6 +10,7 @@ import { Pill, ArrowLeftRight, FileText, Settings, Briefcase, Shield } from 'luc
 import { useLanguage } from '@/i18n/LanguageContext';
 import LoadingScreen from '@/components/LoadingScreen';
 import PageTransition from '@/components/PageTransition';
+import { prefetchAll } from '@/hooks/useKokoData';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -19,16 +20,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { t, lang } = useLanguage();
   const [pendingCount, setPendingCount] = useState(0);
 
+  // Préchargement global des données
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (mounted && !loading && !user) {
-      router.push('/login');
+    if (user) {
+      prefetchAll();
     }
-  }, [mounted, user, loading, router]);
+  }, [user]);
 
+  // Compteur de prises en attente (existant)
   useEffect(() => {
     if (!user) return;
     const fetchPending = async () => {
@@ -51,6 +50,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const interval = setInterval(fetchPending, 30000);
     return () => clearInterval(interval);
   }, [user]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && !loading && !user) {
+      router.push('/login');
+    }
+  }, [mounted, user, loading, router]);
 
   if (!mounted || loading) return <LoadingScreen />;
   if (!user) return null;
