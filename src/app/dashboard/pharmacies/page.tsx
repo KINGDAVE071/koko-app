@@ -50,44 +50,58 @@ export default function PharmaciesPage() {
   };
 
   return (
-    <div className="p-4">
+    <div className="p-4 min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A]">
       <div className="flex items-center mb-4">
-        <Link href="/dashboard" className="mr-3 text-gray-500 hover:text-koko-orange transition-colors">
+        <Link href="/dashboard" className="mr-3 text-gray-500 dark:text-gray-400 hover:text-koko-orange">
           <ArrowLeft size={24} />
         </Link>
-        <h1 className="text-2xl font-bold flex-1">💊 Pharmacies à proximité</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white flex-1">💊 Pharmacies à proximité</h1>
       </div>
 
       {!location && (
-        <button onClick={getUserLocation} className="w-full py-3 bg-koko-orange text-white font-bold rounded-xl hover:bg-koko-orange-dark transition mb-4">
-          <MapPin className="inline w-5 h-5 mr-1" /> Trouver les pharmacies autour de moi
+        <button
+          onClick={getUserLocation}
+          className="w-full py-3 rounded-xl bg-koko-orange hover:bg-koko-orange-dark text-white font-bold transition-colors shadow-lg hover:shadow-koko-orange/30 mb-4 flex items-center justify-center gap-2"
+        >
+          <MapPin size={20} /> Trouver les pharmacies autour de moi
         </button>
       )}
-      {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-      {loading && <p className="text-center">Recherche en cours...</p>}
-      {pharmacies.length > 0 && (
-        <div className="space-y-2">
-          {pharmacies.map((pharm) => (
-            <div key={pharm.id} className="bg-white dark:bg-koko-blue p-3 rounded-xl shadow-koko flex justify-between items-center">
-              <div>
-                <p className="font-semibold">{pharm.name}</p>
-                <p className="text-sm text-gray-500">
-                  {pharm.distance} km
-                </p>
-              </div>
-              <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${pharm.lat},${pharm.lon}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 px-3 py-2 bg-koko-orange text-white text-sm font-medium rounded-lg hover:bg-koko-orange-dark transition-colors"
-              >
-                <Navigation size={16} />
-                Itinéraire
-              </a>
-            </div>
-          ))}
+
+      {error && (
+        <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 text-sm">
+          {error}
         </div>
       )}
+
+      {loading && (
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">Recherche en cours...</div>
+      )}
+
+      <div className="space-y-2">
+        {pharmacies.map((pharm) => (
+          <div
+            key={pharm.id}
+            className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border border-koko-orange/20 rounded-xl p-3 flex justify-between items-center shadow-sm"
+          >
+            <div>
+              <p className="font-semibold text-gray-800 dark:text-white">{pharm.name}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {pharm.isAirDistance ? '≈ ' : ''}{pharm.distance} km
+                {pharm.isAirDistance && ' (vol d\'oiseau)'}
+                {pharm.duration && ` · ${pharm.duration} min`}
+              </p>
+            </div>
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${pharm.lat},${pharm.lon}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 px-3 py-2 rounded-lg bg-koko-orange hover:bg-koko-orange-dark text-white text-sm font-medium transition-colors"
+            >
+              <Navigation size={16} /> Itinéraire
+            </a>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
