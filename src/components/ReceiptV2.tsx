@@ -5,6 +5,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { X, Eye, Printer } from 'lucide-react';
 import api from '@/lib/api';
 
+interface SaleItem {
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+}
+
 interface Receipt {
   id: number;
   type: string;
@@ -16,23 +22,17 @@ interface Receipt {
   location?: string;
   hash: string;
   created_at: string;
-}
-
-interface SaleItem {
-  product_name: string;
-  quantity: number;
-  unit_price: number;
+  items?: SaleItem[];  // fourni par le backend pour les ventes
 }
 
 interface Props {
   receipt: Receipt;
-  items?: SaleItem[];
   onDelete?: (id: number) => void;
   isSelected?: boolean;
   onSelect?: (id: number) => void;
 }
 
-export default function ReceiptV2({ receipt, items, onDelete, isSelected, onSelect }: Props) {
+export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: Props) {
   const { user } = useAuth();
   const [showPreview, setShowPreview] = useState(false);
   const logoSrc = user?.logo || null;
@@ -49,12 +49,17 @@ export default function ReceiptV2({ receipt, items, onDelete, isSelected, onSele
   };
 
   const handleDelete = async () => {
-    if (confirm('Supprimer ce reçu ?')) {
-      try { await api.delete(`/receipts/${receipt.id}`); if (onDelete) onDelete(receipt.id); }
-      catch (err) { alert('Erreur lors de la suppression.'); }
+    if (confirm('Supprimer ce reçu ? (l\'historique de vente est conservé)')) {
+      try {
+        await api.delete(`/receipts/${receipt.id}`);
+        if (onDelete) onDelete(receipt.id);
+      } catch (err) {
+        alert('Erreur lors de la suppression.');
+      }
     }
   };
 
+  const items = receipt.items && receipt.items.length > 0 ? receipt.items : undefined;
   const totalTTC = items ? items.reduce((sum, it) => sum + it.unit_price * it.quantity, 0) : receipt.amount;
 
   return (
@@ -72,7 +77,7 @@ export default function ReceiptV2({ receipt, items, onDelete, isSelected, onSele
           <p className="font-bold text-sm">KOKO – Reçu</p>
           <p className="text-gray-500 dark:text-gray-400 text-[10px]">{new Date(receipt.created_at).toLocaleString()}</p>
           <hr className="my-2 border-dashed border-gray-300 dark:border-gray-600" />
-          {items && items.length > 0 ? (
+          {items ? (
             <table className="w-full text-left text-[10px] mt-1">
               <thead>
                 <tr className="text-gray-500 dark:text-gray-400">
@@ -106,7 +111,6 @@ export default function ReceiptV2({ receipt, items, onDelete, isSelected, onSele
           {receipt.description && <p className="text-gray-500 dark:text-gray-400 mt-1 text-[10px]">{receipt.description}</p>}
           <hr className="my-2 border-dashed border-gray-300 dark:border-gray-600" />
           <p className="text-gray-400 dark:text-gray-500 text-[10px]">#{receipt.hash}</p>
-          {/* Allongement du ticket pour l'imprimante */}
           <div className="mt-3 pt-2 border-t-2 border-dashed border-gray-300 dark:border-gray-600 text-center">
             <p className="text-gray-400 dark:text-gray-500 text-[10px]">Merci de votre visite !</p>
             <p className="text-gray-400 dark:text-gray-500 text-[10px]">KOKO – Simplifiez votre quotidien</p>
@@ -139,7 +143,7 @@ export default function ReceiptV2({ receipt, items, onDelete, isSelected, onSele
               <p className="font-bold text-sm">KOKO – Reçu</p>
               <p className="text-gray-500 dark:text-gray-400 text-[10px]">{new Date(receipt.created_at).toLocaleString()}</p>
               <hr className="my-2 border-dashed border-gray-300 dark:border-gray-600" />
-              {items && items.length > 0 ? (
+              {items ? (
                 <table className="w-full text-left text-[10px] mt-1">
                   <thead>
                     <tr className="text-gray-500 dark:text-gray-400">

@@ -7,7 +7,7 @@ import { ArrowLeft, Eye } from 'lucide-react';
 import Link from 'next/link';
 import ReceiptV2 from '@/components/ReceiptV2';
 
-interface SaleItem { product_name: string; quantity: number; unit_price: number; cost_price: number; }
+interface SaleItem { product_name: string; quantity: number; unit_price: number; }
 interface Sale { id: number; amount: number; description: string; hash: string; created_at: string; profit: number; items: SaleItem[]; }
 
 export default function SalesHistoryPage() {
@@ -48,7 +48,6 @@ export default function SalesHistoryPage() {
         ))}
       </div>
 
-      {/* Modale ticket */}
       {selectedSale && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={() => setSelectedSale(null)}>
           <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border border-koko-orange/20 rounded-2xl p-5 shadow-2xl w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
@@ -64,8 +63,8 @@ export default function SalesHistoryPage() {
                 hash: selectedSale.hash,
                 created_at: selectedSale.created_at,
                 location: undefined,
+                items: selectedSale.items,
               }}
-              items={selectedSale.items}
             />
             <button onClick={() => setSelectedSale(null)} className="w-full mt-4 py-2 rounded-lg bg-koko-orange hover:bg-koko-orange-dark text-white transition">Fermer</button>
           </div>

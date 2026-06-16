@@ -65,6 +65,7 @@ export async function createTables() {
         signature_from TEXT,
         signature_to TEXT,
         hash TEXT,
+        deleted BOOLEAN DEFAULT false,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
       CREATE TABLE IF NOT EXISTS products (
@@ -156,6 +157,7 @@ export async function createTables() {
     await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS cost_price REAL DEFAULT 0`);
     await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS min_stock INTEGER DEFAULT 0`);
     await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS tva REAL DEFAULT 0`);
+    await client.query(`ALTER TABLE receipts ADD COLUMN IF NOT EXISTS deleted BOOLEAN DEFAULT false`);
     await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS blocked BOOLEAN DEFAULT false`);
   } finally {
     client.release();
