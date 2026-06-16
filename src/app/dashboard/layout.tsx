@@ -17,6 +17,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const { t, lang } = useLanguage();
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     setMounted(true);
@@ -28,13 +29,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [mounted, user, loading, router]);
 
-  if (!mounted || loading) {
-    return <LoadingScreen />;
-  }
+  // Récupère le nombre de prises en attente via l'API medications
+  useEffect(() => {
+    if (!user) return;
+    const fetchPending = async () => {
+      try {
+        const { default: api } = await import('@/lib/api');
+        const res = await api.get('/medications');
+        const meds = res.data.medications || [];
+        const now = new Date();
+        const currentTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+        let count = 0;
+        meds.forEach((med: any) => {
+          med.times.forEach((time: string) => {
+            if (time <= currentTime && !med.logs[time]) count++;
+          });
+        });
+        setPendingCount(count);
+      } catch (e) {}
+    };
+    fetchPending();
+    const interval = setInterval(fetchPending, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
-  if (!user) {
-    return null;
-  }
+  if (!mounted || loading) return <LoadingScreen />;
+  if (!user) return null;
 
   const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'));
 
@@ -44,7 +64,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <PageTransition>{children}</PageTransition>
       </main>
 
-      {/* Barre de navigation glassmorphism */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/70 dark:bg-gray-900/70 backdrop-blur-lg border-t border-koko-orange/20 shadow-[0_-4px_20px_rgba(230,126,34,0.05)]">
         <div className="flex items-center justify-around px-4 py-2 max-w-lg mx-auto">
           {[
@@ -67,7 +86,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
                 }`}
               >
-                {/* Fond actif discret */}
                 {active && (
                   <span className="absolute inset-0 rounded-xl bg-koko-orange/5 dark:bg-koko-orange/10" />
                 )}
@@ -75,6 +93,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <span className="text-[10px] font-medium relative z-10">{t(labelKey)}</span>
                 {active && (
                   <span className="absolute -bottom-0.5 w-1 h-1 rounded-full bg-koko-orange" />
+                )}
+                {/* Badge de prises en attente */}
+                {href === '/dashboard' && pendingCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-koko-orange text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center z-20">
+                    {pendingCount}
+                  </span>
                 )}
               </Link>
             );

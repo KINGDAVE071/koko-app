@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/i18n/LanguageContext';
-import { Plus, Trash2, MapPin, Bell, Check } from 'lucide-react';
+import { Plus, Trash2, MapPin, Bell, Check, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import PremiumGate from '@/components/PremiumGate';
+import { usePillAlerts } from '@/hooks/usePillAlerts';
 
 interface Medication {
   id: number;
@@ -30,34 +31,15 @@ export default function DashboardPage() {
   });
 
   const fetchMeds = useCallback(async () => {
-    try {
-      const res = await api.get('/medications');
-      setMedications(res.data.medications);
-    } catch (e) { console.error(e); }
+    try { const res = await api.get('/medications'); setMedications(res.data.medications); }
+    catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchMeds(); }, [fetchMeds]);
 
-  useEffect(() => {
-    if (Notification.permission !== 'granted') return;
-    const interval = setInterval(() => {
-      const now = new Date();
-      const currentTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-      medications.forEach(med => {
-        med.times.forEach(time => {
-          if (time === currentTime && !med.logs[time]) {
-            new Notification('💊 Rappel de prise', {
-              body: `Il est l'heure de prendre : ${med.name} ${med.dosage ? `(${med.dosage})` : ''}`,
-              icon: '/icons/icon-192x192.png',
-            });
-            toast.info(`🕐 C'est l'heure de prendre ${med.name} !`);
-          }
-        });
-      });
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [medications]);
+  // Système d'alertes amélioré
+  const { pendingCount, missedMeds } = usePillAlerts(medications);
 
   const handleAddMed = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,10 +60,7 @@ export default function DashboardPage() {
     fetchMeds();
   };
 
-  const handleDelete = async (id: number) => {
-    await api.delete(`/medications/${id}`);
-    fetchMeds();
-  };
+  const handleDelete = async (id: number) => { await api.delete(`/medications/${id}`); fetchMeds(); };
 
   const addTime = () => setNewMed({ ...newMed, times: [...newMed.times, '08:00'] });
   const removeTime = (index: number) => {
@@ -94,6 +73,20 @@ export default function DashboardPage() {
   return (
     <div className="p-4 min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">{welcomeMessage}</h1>
+
+      {/* Alertes d'oublis */}
+      {missedMeds.length > 0 && (
+        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl p-3 mb-4">
+          <h3 className="font-semibold text-red-600 dark:text-red-400 flex items-center gap-2 mb-2">
+            <AlertTriangle size={18} /> Prises oubliées
+          </h3>
+          {missedMeds.map((m, idx) => (
+            <p key={idx} className="text-sm text-red-600 dark:text-red-300">
+              {m.name} – prévu à {m.time}
+            </p>
+          ))}
+        </div>
+      )}
 
       <Link href="/dashboard/pharmacies" className="flex items-center justify-center w-full py-3 mb-4 border-2 border-dashed border-koko-orange text-koko-orange font-bold rounded-xl hover:bg-koko-orange/10 transition-colors">
         <MapPin className="mr-2" size={20} /> Pharmacies à proximité
