@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { useLanguage } from '@/i18n/LanguageContext';
-import { ArrowRightLeft, TrendingUp } from 'lucide-react';
+import { ArrowRightLeft } from 'lucide-react';
 
 const DEVISE_NAMES: Record<string, string> = {
   USD: 'Dollar US',
   EUR: 'Euro',
   XOF: 'Franc CFA',
+  XAF: 'Franc CFA (CEMAC)',
   NGN: 'Naira',
   GHS: 'Cedi',
   KES: 'Shilling kenyan',
@@ -16,6 +17,140 @@ const DEVISE_NAMES: Record<string, string> = {
   CNY: 'Yuan',
   JPY: 'Yen',
   GBP: 'Livre sterling',
+  CAD: 'Dollar canadien',
+  AUD: 'Dollar australien',
+  CHF: 'Franc suisse',
+  MAD: 'Dirham marocain',
+  DZD: 'Dinar algérien',
+  TND: 'Dinar tunisien',
+  EGP: 'Livre égyptienne',
+  INR: 'Roupie indienne',
+  BRL: 'Real brésilien',
+  RUB: 'Rouble russe',
+  KRW: 'Won sud-coréen',
+  SEK: 'Couronne suédoise',
+  NOK: 'Couronne norvégienne',
+  DKK: 'Couronne danoise',
+  PLN: 'Zloty polonais',
+  TRY: 'Livre turque',
+  SAR: 'Riyal saoudien',
+  AED: 'Dirham des Émirats',
+  QAR: 'Riyal qatari',
+  OMR: 'Rial omanais',
+  BHD: 'Dinar bahreïni',
+  KWD: 'Dinar koweïtien',
+  SGD: 'Dollar singapourien',
+  HKD: 'Dollar de Hong Kong',
+  NZD: 'Dollar néo-zélandais',
+  MXN: 'Peso mexicain',
+  ARS: 'Peso argentin',
+  CLP: 'Peso chilien',
+  COP: 'Peso colombien',
+  PEN: 'Sol péruvien',
+  UYU: 'Peso uruguayen',
+  VES: 'Bolívar vénézuélien',
+  CRC: 'Colón costaricain',
+  DOP: 'Peso dominicain',
+  GTQ: 'Quetzal guatémaltèque',
+  HNL: 'Lempira hondurien',
+  NIO: 'Córdoba nicaraguayen',
+  PAB: 'Balboa panaméen',
+  PYG: 'Guaraní paraguayen',
+  SVC: 'Colón salvadorien',
+  BOB: 'Boliviano',
+  CUP: 'Peso cubain',
+  HTG: 'Gourde haïtienne',
+  JMD: 'Dollar jamaïcain',
+  BSD: 'Dollar bahaméen',
+  BBD: 'Dollar barbadien',
+  TTD: 'Dollar trinidadien',
+  XCD: 'Dollar des Caraïbes orientales',
+  BMD: 'Dollar bermudien',
+  KYD: 'Dollar des îles Caïmans',
+  AWG: 'Florin arubais',
+  ANG: 'Florin des Antilles néerlandaises',
+  CVE: 'Escudo cap-verdien',
+  GMD: 'Dalasi gambien',
+  GNF: 'Franc guinéen',
+  LRD: 'Dollar libérien',
+  MRU: 'Ouguiya mauritanien',
+  SLL: 'Leone sierra-léonais',
+  SSP: 'Livre sud-soudanaise',
+  SDG: 'Livre soudanaise',
+  ETB: 'Birr éthiopien',
+  DJF: 'Franc djiboutien',
+  SOS: 'Shilling somalien',
+  KMF: 'Franc comorien',
+  MGA: 'Ariary malgache',
+  MUR: 'Roupie mauricienne',
+  SCR: 'Roupie seychelloise',
+  ZMW: 'Kwacha zambien',
+  MWK: 'Kwacha malawite',
+  BWP: 'Pula botswanais',
+  NAD: 'Dollar namibien',
+  LSL: 'Loti lesothan',
+  SZL: 'Lilangeni swazi',
+  ZWL: 'Dollar zimbabwéen',
+  TZS: 'Shilling tanzanien',
+  UGX: 'Shilling ougandais',
+  RWF: 'Franc rwandais',
+  BIF: 'Franc burundais',
+  CDF: 'Franc congolais',
+  AOA: 'Kwanza angolais',
+  MZN: 'Metical mozambicain',
+  MOP: 'Pataca macanais',
+  PHP: 'Peso philippin',
+  THB: 'Baht thaïlandais',
+  MYR: 'Ringgit malaisien',
+  IDR: 'Roupie indonésienne',
+  VND: 'Dong vietnamien',
+  LAK: 'Kip laotien',
+  KHR: 'Riel cambodgien',
+  MMK: 'Kyat birman',
+  BDT: 'Taka bangladais',
+  PKR: 'Roupie pakistanaise',
+  NPR: 'Roupie népalaise',
+  LKR: 'Roupie sri lankaise',
+  MVR: 'Rufiyaa maldivien',
+  BTN: 'Ngultrum bhoutanais',
+  AFN: 'Afghani afghan',
+  IRR: 'Rial iranien',
+  IQD: 'Dinar irakien',
+  SYP: 'Livre syrienne',
+  LBP: 'Livre libanaise',
+  JOD: 'Dinar jordanien',
+  ILS: 'Shekel israélien',
+  UAH: 'Hryvnia ukrainienne',
+  BYN: 'Rouble biélorusse',
+  GEL: 'Lari géorgien',
+  AMD: 'Dram arménien',
+  AZN: 'Manat azerbaïdjanais',
+  KZT: 'Tenge kazakh',
+  KGS: 'Som kirghize',
+  TJS: 'Somoni tadjik',
+  TMT: 'Manat turkmène',
+  UZS: 'Sum ouzbek',
+  MNT: 'Tugrik mongol',
+  KPW: 'Won nord-coréen',
+  BND: 'Dollar brunéien',
+  FJD: 'Dollar fidjien',
+  PGK: 'Kina papouan-néo-guinéen',
+  SBD: 'Dollar des Îles Salomon',
+  VUV: 'Vatu vanuatais',
+  WST: 'Tala samoan',
+  TOP: 'Paʻanga tongien',
+  LTL: 'Litas lituanien',
+  EEK: 'Couronne estonienne',
+  LVL: 'Lats letton',
+  ISK: 'Couronne islandaise',
+  HRK: 'Kuna croate',
+  RON: 'Leu roumain',
+  BGN: 'Lev bulgare',
+  ALL: 'Lek albanais',
+  MKD: 'Denar macédonien',
+  RSD: 'Dinar serbe',
+  BAM: 'Mark convertible bosnien',
+  MDL: 'Leu moldave',
 };
 
 export default function ConverterPage() {
@@ -26,7 +161,6 @@ export default function ConverterPage() {
   const [result, setResult] = useState<number | null>(null);
   const [rate, setRate] = useState<number | null>(null);
   const [useParallel, setUseParallel] = useState(false);
-  const [marginResult, setMarginResult] = useState<number | null>(null);
   const [currencies, setCurrencies] = useState<string[]>([]);
 
   useEffect(() => {
@@ -50,17 +184,6 @@ export default function ConverterPage() {
       setRate(res.data.rate);
     } catch (err: any) {
       alert(err.response?.data?.error || 'Erreur de conversion');
-    }
-  };
-
-  const handleMargin = async () => {
-    const cost = parseFloat(prompt("Prix d'achat ?") || '0');
-    const margin = parseFloat(prompt("Marge en % ?") || '0');
-    if (cost && margin) {
-      try {
-        const res = await api.post('/converter/margin', { costPrice: cost, marginPercent: margin, currency: from });
-        setMarginResult(res.data.sellingPrice);
-      } catch (err) {}
     }
   };
 
@@ -158,24 +281,6 @@ export default function ConverterPage() {
               Taux : {rate} ({useParallel ? t('converter.parallelRate') : t('converter.officialRate')})
             </p>
           </div>
-        )}
-
-        {/* Séparateur */}
-        <hr className="border-gray-200 dark:border-gray-700" />
-
-        {/* Calcul de marge */}
-        <button
-          onClick={handleMargin}
-          className="w-full py-3 rounded-xl border-2 border-koko-orange text-koko-orange font-bold hover:bg-koko-orange/5 transition-colors flex items-center justify-center gap-2"
-        >
-          <TrendingUp size={18} />
-          {t('converter.margin')}
-        </button>
-
-        {marginResult !== null && (
-          <p className="text-center text-gray-800 dark:text-white font-medium">
-            {t('converter.result')} : {marginResult.toLocaleString()} {displayName(from)}
-          </p>
         )}
       </div>
     </div>
