@@ -22,7 +22,6 @@ interface SaleItem {
   product_name: string;
   quantity: number;
   unit_price: number;
-  cost_price?: number;
 }
 
 interface Props {
@@ -56,7 +55,6 @@ export default function ReceiptV2({ receipt, items, onDelete, isSelected, onSele
     }
   };
 
-  // Calcul TTC si items
   const totalTTC = items ? items.reduce((sum, it) => sum + it.unit_price * it.quantity, 0) : receipt.amount;
 
   return (
@@ -73,7 +71,7 @@ export default function ReceiptV2({ receipt, items, onDelete, isSelected, onSele
           )}
           <p className="font-bold text-sm">KOKO – Reçu</p>
           <p className="text-gray-500 dark:text-gray-400 text-[10px]">{new Date(receipt.created_at).toLocaleString()}</p>
-          <hr className="my-1 border-dashed border-gray-300 dark:border-gray-600" />
+          <hr className="my-2 border-dashed border-gray-300 dark:border-gray-600" />
           {items && items.length > 0 ? (
             <table className="w-full text-left text-[10px] mt-1">
               <thead>
@@ -106,8 +104,14 @@ export default function ReceiptV2({ receipt, items, onDelete, isSelected, onSele
             </>
           )}
           {receipt.description && <p className="text-gray-500 dark:text-gray-400 mt-1 text-[10px]">{receipt.description}</p>}
-          <hr className="my-1 border-dashed border-gray-300 dark:border-gray-600" />
+          <hr className="my-2 border-dashed border-gray-300 dark:border-gray-600" />
           <p className="text-gray-400 dark:text-gray-500 text-[10px]">#{receipt.hash}</p>
+          {/* Allongement du ticket pour l'imprimante */}
+          <div className="mt-3 pt-2 border-t-2 border-dashed border-gray-300 dark:border-gray-600 text-center">
+            <p className="text-gray-400 dark:text-gray-500 text-[10px]">Merci de votre visite !</p>
+            <p className="text-gray-400 dark:text-gray-500 text-[10px]">KOKO – Simplifiez votre quotidien</p>
+            <p className="text-gray-400 dark:text-gray-500 text-[10px] mt-1">---</p>
+          </div>
         </div>
         <div className="flex gap-1 mt-2">
           <button onClick={() => setShowPreview(true)} className="flex-1 py-1.5 rounded-lg bg-koko-orange hover:bg-koko-orange-dark text-white text-xs flex items-center justify-center gap-1 transition">
@@ -125,15 +129,16 @@ export default function ReceiptV2({ receipt, items, onDelete, isSelected, onSele
       {showPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={() => setShowPreview(false)}>
           <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border border-koko-orange/20 rounded-2xl p-4 shadow-2xl w-80 text-xs font-mono text-gray-800 dark:text-white" onClick={e => e.stopPropagation()}>
-            {logoSrc && (
-              <div className="mb-2 flex justify-center">
-                <img src={logoSrc} alt="Logo" className="max-h-10 max-w-full object-contain" />
-              </div>
-            )}
-            <div className="text-center">
+            {/* Même contenu que le ticket */}
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 text-center">
+              {logoSrc && (
+                <div className="mb-2 flex justify-center">
+                  <img src={logoSrc} alt="Logo" className="max-h-10 max-w-full object-contain" />
+                </div>
+              )}
               <p className="font-bold text-sm">KOKO – Reçu</p>
               <p className="text-gray-500 dark:text-gray-400 text-[10px]">{new Date(receipt.created_at).toLocaleString()}</p>
-              <hr className="my-1 border-dashed border-gray-300 dark:border-gray-600" />
+              <hr className="my-2 border-dashed border-gray-300 dark:border-gray-600" />
               {items && items.length > 0 ? (
                 <table className="w-full text-left text-[10px] mt-1">
                   <thead>
@@ -166,8 +171,13 @@ export default function ReceiptV2({ receipt, items, onDelete, isSelected, onSele
                 </>
               )}
               {receipt.description && <p className="text-gray-500 dark:text-gray-400 mt-1 text-[10px]">{receipt.description}</p>}
-              <hr className="my-1 border-dashed border-gray-300 dark:border-gray-600" />
+              <hr className="my-2 border-dashed border-gray-300 dark:border-gray-600" />
               <p className="text-gray-400 dark:text-gray-500 text-[10px]">#{receipt.hash}</p>
+              <div className="mt-3 pt-2 border-t-2 border-dashed border-gray-300 dark:border-gray-600 text-center">
+                <p className="text-gray-400 dark:text-gray-500 text-[10px]">Merci de votre visite !</p>
+                <p className="text-gray-400 dark:text-gray-500 text-[10px]">KOKO – Simplifiez votre quotidien</p>
+                <p className="text-gray-400 dark:text-gray-500 text-[10px] mt-1">---</p>
+              </div>
             </div>
             <button onClick={() => setShowPreview(false)} className="w-full mt-3 py-1.5 rounded-lg bg-koko-orange hover:bg-koko-orange-dark text-white text-xs transition">Fermer</button>
           </div>
