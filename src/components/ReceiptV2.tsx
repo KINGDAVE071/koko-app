@@ -22,7 +22,7 @@ interface Receipt {
   location?: string;
   hash: string;
   created_at: string;
-  items?: SaleItem[];  // fourni par le backend pour les ventes
+  items?: SaleItem[];
 }
 
 interface Props {
@@ -40,16 +40,37 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
   const handlePrint = () => {
     const content = document.getElementById(`receipt-${receipt.id}`);
     if (!content) return;
-    const printWindow = window.open('', '_blank', 'width=400,height=600');
+    const printWindow = window.open('', '_blank', 'width=300,height=500');
     if (printWindow) {
-      printWindow.document.write(`<html><head><title>Reçu ${receipt.hash}</title><style>body{font-family:monospace;font-size:12px;display:flex;justify-content:center;margin:0;padding:16px;background:white;color:black;}table{width:100%;border-collapse:collapse;}td,th{border-bottom:1px dashed #ccc;padding:4px 0;text-align:left;}.total{font-weight:bold;}</style></head><body>${content.outerHTML}</body></html>`);
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Reçu ${receipt.hash}</title>
+            <style>
+              @page { size: 80mm auto; margin: 2mm; }
+              body { font-family: 'Courier New', monospace; font-size: 11px; width: 76mm; margin: 0 auto; padding: 0; color: black; background: white; }
+              table { width: 100%; border-collapse: collapse; }
+              td, th { padding: 2px 0; }
+              .center { text-align: center; }
+              .right { text-align: right; }
+              .dashed { border-top: 1px dashed #000; margin: 4px 0; }
+              .bold { font-weight: bold; }
+              .small { font-size: 9px; }
+              .warning { font-size: 8px; border: 1px solid #000; padding: 4px; margin-top: 8px; text-align: center; }
+            </style>
+          </head>
+          <body>
+            ${content!.innerHTML}
+          </body>
+        </html>
+      `);
       printWindow.document.close();
       printWindow.print();
     }
   };
 
   const handleDelete = async () => {
-    if (confirm('Supprimer ce reçu ? (l\'historique de vente est conservé)')) {
+    if (confirm("Supprimer ce reçu ? (l'historique de vente est conservé)")) {
       try {
         await api.delete(`/receipts/${receipt.id}`);
         if (onDelete) onDelete(receipt.id);
@@ -60,7 +81,70 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
   };
 
   const items = receipt.items && receipt.items.length > 0 ? receipt.items : undefined;
-  const totalTTC = items ? items.reduce((sum, it) => sum + it.unit_price * it.quantity, 0) : receipt.amount;
+  const totalTTC = items
+    ? items.reduce((sum, it) => sum + it.unit_price * it.quantity, 0)
+    : receipt.amount;
+
+  // Contenu du ticket (réutilisé pour la prévisualisation et l'impression)
+  const ticketContent = (
+    <div className="center" style={{ fontFamily: "'Courier New', monospace", fontSize: '11px', color: 'black', background: 'white' }}>
+      {logoSrc && (
+        <div className="center" style={{ marginBottom: '4px' }}>
+          <img src={logoSrc} alt="Logo" style={{ maxHeight: '36px', maxWidth: '100%' }} />
+        </div>
+      )}
+      <p className="bold" style={{ fontSize: '13px', margin: '0 0 2px 0' }}>KOKO – Reçu</p>
+      <p className="small" style={{ margin: '0 0 2px 0' }}>{new Date(receipt.created_at).toLocaleString()}</p>
+      <div className="dashed" />
+      {items ? (
+        <table style={{ width: '100%', fontSize: '10px' }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: 'left' }}>Article</th>
+              <th style={{ textAlign: 'right' }}>Qté</th>
+              <th style={{ textAlign: 'right' }}>Prix</th>
+              <th style={{ textAlign: 'right' }}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((it, idx) => (
+              <tr key={idx}>
+                <td style={{ textAlign: 'left' }}>{it.product_name}</td>
+                <td style={{ textAlign: 'right' }}>{it.quantity}</td>
+                <td style={{ textAlign: 'right' }}>{it.unit_price.toLocaleString()}</td>
+                <td style={{ textAlign: 'right' }}>{(it.unit_price * it.quantity).toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="bold">
+              <td colSpan={3} style={{ textAlign: 'right' }}>Total TTC</td>
+              <td style={{ textAlign: 'right', color: '#E67E22' }}>{totalTTC.toLocaleString()} FCFA</td>
+            </tr>
+          </tfoot>
+        </table>
+      ) : (
+        <>
+          <p className="bold" style={{ margin: '2px 0' }}>{receipt.type.toUpperCase()}</p>
+          <p style={{ margin: '1px 0' }}>{receipt.from_name} → {receipt.to_name}</p>
+          <p className="bold" style={{ fontSize: '16px', margin: '4px 0', color: '#E67E22' }}>{receipt.amount} {receipt.currency}</p>
+        </>
+      )}
+      {receipt.description && (
+        <p className="small" style={{ margin: '2px 0' }}>{receipt.description}</p>
+      )}
+      <div className="dashed" />
+      <p className="small" style={{ margin: '2px 0' }}>#{receipt.hash}</p>
+      <p className="small" style={{ margin: '2px 0' }}>Merci de votre visite !</p>
+      <div className="warning">
+        <p className="bold" style={{ margin: '0 0 2px 0', fontSize: '8px' }}>⚠ MISE EN GARDE</p>
+        <p style={{ margin: '0', fontSize: '8px' }}>
+          Ce ticket est le seul justificatif de votre achat. En cas de perte, aucune réclamation ne pourra être traitée. Conservez-le précieusement.
+        </p>
+      </div>
+      <p className="small" style={{ marginTop: '6px' }}>2026 KOKO® – Tous droits réservés</p>
+    </div>
+  );
 
   return (
     <>
@@ -68,54 +152,8 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
         {onSelect && (
           <input type="checkbox" checked={isSelected || false} onChange={() => onSelect(receipt.id)} className="absolute top-2 left-2 w-3 h-3" />
         )}
-        <div id={`receipt-${receipt.id}`} className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 text-center">
-          {logoSrc && (
-            <div className="mb-2 flex justify-center">
-              <img src={logoSrc} alt="Logo" className="max-h-8 max-w-full object-contain" />
-            </div>
-          )}
-          <p className="font-bold text-sm">KOKO – Reçu</p>
-          <p className="text-gray-500 dark:text-gray-400 text-[10px]">{new Date(receipt.created_at).toLocaleString()}</p>
-          <hr className="my-2 border-dashed border-gray-300 dark:border-gray-600" />
-          {items ? (
-            <table className="w-full text-left text-[10px] mt-1">
-              <thead>
-                <tr className="text-gray-500 dark:text-gray-400">
-                  <th>Article</th><th className="text-right">Qté</th><th className="text-right">Prix</th><th className="text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((it, idx) => (
-                  <tr key={idx}>
-                    <td>{it.product_name}</td>
-                    <td className="text-right">{it.quantity}</td>
-                    <td className="text-right">{it.unit_price.toLocaleString()}</td>
-                    <td className="text-right">{(it.unit_price * it.quantity).toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="font-bold">
-                  <td colSpan={3} className="text-right">Total TTC</td>
-                  <td className="text-right text-koko-orange">{totalTTC.toLocaleString()} FCFA</td>
-                </tr>
-              </tfoot>
-            </table>
-          ) : (
-            <>
-              <p className="font-semibold">{receipt.type.toUpperCase()}</p>
-              <p>{receipt.from_name} → {receipt.to_name}</p>
-              <p className="text-lg font-bold my-1 text-koko-orange">{receipt.amount} {receipt.currency}</p>
-            </>
-          )}
-          {receipt.description && <p className="text-gray-500 dark:text-gray-400 mt-1 text-[10px]">{receipt.description}</p>}
-          <hr className="my-2 border-dashed border-gray-300 dark:border-gray-600" />
-          <p className="text-gray-400 dark:text-gray-500 text-[10px]">#{receipt.hash}</p>
-          <div className="mt-3 pt-2 border-t-2 border-dashed border-gray-300 dark:border-gray-600 text-center">
-            <p className="text-gray-400 dark:text-gray-500 text-[10px]">Merci de votre visite !</p>
-            <p className="text-gray-400 dark:text-gray-500 text-[10px]">KOKO – Simplifiez votre quotidien</p>
-            <p className="text-gray-400 dark:text-gray-500 text-[10px] mt-1">---</p>
-          </div>
+        <div id={`receipt-${receipt.id}`} style={{ background: 'white', color: 'black', fontFamily: "'Courier New', monospace", fontSize: '11px', borderRadius: '8px', padding: '12px' }}>
+          {ticketContent}
         </div>
         <div className="flex gap-1 mt-2">
           <button onClick={() => setShowPreview(true)} className="flex-1 py-1.5 rounded-lg bg-koko-orange hover:bg-koko-orange-dark text-white text-xs flex items-center justify-center gap-1 transition">
@@ -132,58 +170,13 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
 
       {showPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={() => setShowPreview(false)}>
-          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border border-koko-orange/20 rounded-2xl p-4 shadow-2xl w-80 text-xs font-mono text-gray-800 dark:text-white" onClick={e => e.stopPropagation()}>
-            {/* Même contenu que le ticket */}
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 text-center">
-              {logoSrc && (
-                <div className="mb-2 flex justify-center">
-                  <img src={logoSrc} alt="Logo" className="max-h-10 max-w-full object-contain" />
-                </div>
-              )}
-              <p className="font-bold text-sm">KOKO – Reçu</p>
-              <p className="text-gray-500 dark:text-gray-400 text-[10px]">{new Date(receipt.created_at).toLocaleString()}</p>
-              <hr className="my-2 border-dashed border-gray-300 dark:border-gray-600" />
-              {items ? (
-                <table className="w-full text-left text-[10px] mt-1">
-                  <thead>
-                    <tr className="text-gray-500 dark:text-gray-400">
-                      <th>Article</th><th className="text-right">Qté</th><th className="text-right">Prix</th><th className="text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((it, idx) => (
-                      <tr key={idx}>
-                        <td>{it.product_name}</td>
-                        <td className="text-right">{it.quantity}</td>
-                        <td className="text-right">{it.unit_price.toLocaleString()}</td>
-                        <td className="text-right">{(it.unit_price * it.quantity).toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="font-bold">
-                      <td colSpan={3} className="text-right">Total TTC</td>
-                      <td className="text-right text-koko-orange">{totalTTC.toLocaleString()} FCFA</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              ) : (
-                <>
-                  <p className="font-semibold">{receipt.type.toUpperCase()}</p>
-                  <p>{receipt.from_name} → {receipt.to_name}</p>
-                  <p className="text-lg font-bold my-1 text-koko-orange">{receipt.amount} {receipt.currency}</p>
-                </>
-              )}
-              {receipt.description && <p className="text-gray-500 dark:text-gray-400 mt-1 text-[10px]">{receipt.description}</p>}
-              <hr className="my-2 border-dashed border-gray-300 dark:border-gray-600" />
-              <p className="text-gray-400 dark:text-gray-500 text-[10px]">#{receipt.hash}</p>
-              <div className="mt-3 pt-2 border-t-2 border-dashed border-gray-300 dark:border-gray-600 text-center">
-                <p className="text-gray-400 dark:text-gray-500 text-[10px]">Merci de votre visite !</p>
-                <p className="text-gray-400 dark:text-gray-500 text-[10px]">KOKO – Simplifiez votre quotidien</p>
-                <p className="text-gray-400 dark:text-gray-500 text-[10px] mt-1">---</p>
-              </div>
+          <div className="bg-white rounded-2xl shadow-2xl w-80 text-xs overflow-hidden" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ background: 'white', color: 'black', fontFamily: "'Courier New', monospace", fontSize: '11px', padding: '16px' }}>
+              {ticketContent}
             </div>
-            <button onClick={() => setShowPreview(false)} className="w-full mt-3 py-1.5 rounded-lg bg-koko-orange hover:bg-koko-orange-dark text-white text-xs transition">Fermer</button>
+            <button onClick={() => setShowPreview(false)} className="w-full py-2 bg-koko-orange hover:bg-koko-orange-dark text-white text-xs font-bold transition">
+              Fermer
+            </button>
           </div>
         </div>
       )}
