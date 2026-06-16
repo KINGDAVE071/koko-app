@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Pill, ArrowLeftRight, FileText, User, Briefcase, Shield } from 'lucide-react';
+import { Pill, ArrowLeftRight, FileText, Settings, Briefcase, Shield } from 'lucide-react';
 import { useLanguage } from '@/i18n/LanguageContext';
 import LoadingScreen from '@/components/LoadingScreen';
 import PageTransition from '@/components/PageTransition';
@@ -29,7 +29,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [mounted, user, loading, router]);
 
-  // Récupère le nombre de prises en attente via l'API medications
   useEffect(() => {
     if (!user) return;
     const fetchPending = async () => {
@@ -72,7 +71,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             { href: '/dashboard/receipts', icon: FileText, labelKey: 'nav.receipts' },
             { href: '/dashboard/business', icon: Briefcase, labelKey: 'nav.business' },
             { href: '/dashboard/admin', icon: Shield, labelKey: 'nav.admin', adminOnly: true },
-            { href: '/dashboard/profile', icon: User, labelKey: 'nav.profile' },
+            { href: '/dashboard/profile', icon: Settings, labelKey: 'nav.profile' },
           ].map(({ href, icon: Icon, labelKey, adminOnly }) => {
             if (adminOnly && user?.role !== 'admin') return null;
             const active = isActive(href);
@@ -94,7 +93,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {active && (
                   <span className="absolute -bottom-0.5 w-1 h-1 rounded-full bg-koko-orange" />
                 )}
-                {/* Badge de prises en attente */}
                 {href === '/dashboard' && pendingCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-koko-orange text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center z-20">
                     {pendingCount}

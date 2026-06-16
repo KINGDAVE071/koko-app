@@ -5,14 +5,16 @@ import { useLanguage } from '@/i18n/LanguageContext';
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { toast } from 'sonner';
-import { Upload, LogOut, Shield, Mail, Globe, Bell, Moon, Sun, ChevronDown, Copyright } from 'lucide-react';
+import { Upload, LogOut, Shield, Mail, Globe, Bell, Moon, Sun, Monitor, ChevronDown, Copyright } from 'lucide-react';
+import { useTheme } from 'next-themes';
 
 export default function ProfilePage() {
   const { user, logout, refreshUser } = useAuth();
   const { t, lang, setLang } = useLanguage();
   const [logo, setLogo] = useState<string | null>(user?.logo || null);
   const [loadingLogo, setLoadingLogo] = useState(false);
-  const [darkMode, setDarkMode] = useState(true);
+  const { theme, setTheme, systemTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [legalTexts, setLegalTexts] = useState({
     privacy_policy: '',
     terms_of_service: '',
@@ -20,17 +22,19 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    const isDark = document.documentElement.classList.contains('dark');
-    setDarkMode(isDark);
-    // Charger les textes légaux dynamiques
+    setMounted(true);
+    // Charger les textes légaux
     api.get('/public/settings')
       .then(res => {
         if (res.data.privacy_policy) setLegalTexts(prev => ({ ...prev, privacy_policy: res.data.privacy_policy }));
         if (res.data.terms_of_service) setLegalTexts(prev => ({ ...prev, terms_of_service: res.data.terms_of_service }));
         if (res.data.contact_email) setLegalTexts(prev => ({ ...prev, contact_email: res.data.contact_email }));
       })
-      .catch(() => {}); // garde les textes par défaut si l'API échoue
+      .catch(() => {});
   }, []);
+
+  // Évite le rendu côté serveur pour le thème
+  if (!mounted) return null;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -51,13 +55,6 @@ export default function ProfilePage() {
     reader.readAsDataURL(file);
   };
 
-  const toggleDarkMode = () => {
-    const newMode = !darkMode;
-    setDarkMode(newMode);
-    document.documentElement.classList.toggle('dark', newMode);
-    localStorage.setItem('theme', newMode ? 'dark' : 'light');
-  };
-
   const languages = [
     { code: 'fr' as const, label: 'Français' },
     { code: 'en' as const, label: 'English' },
@@ -65,6 +62,8 @@ export default function ProfilePage() {
     { code: 'zh' as const, label: '中文' },
     { code: 'ja' as const, label: '日本語' },
   ];
+
+  const currentTheme = theme === 'system' ? systemTheme : theme;
 
   return (
     <div className="p-4 min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A]">
@@ -129,13 +128,30 @@ export default function ProfilePage() {
           <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2 mb-3">
             <Sun size={20} /> Apparence
           </h3>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-700 dark:text-gray-300">Mode sombre</span>
+          <div className="flex gap-2">
             <button
-              onClick={toggleDarkMode}
-              className={`relative w-12 h-6 rounded-full transition-colors ${darkMode ? 'bg-koko-orange' : 'bg-gray-300'}`}
+              onClick={() => setTheme('light')}
+              className={`flex-1 py-2 rounded-xl text-sm font-medium transition ${
+                theme === 'light' ? 'bg-koko-orange text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+              }`}
             >
-              <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${darkMode ? 'translate-x-6' : ''}`} />
+              <Sun size={16} className="inline mr-1" /> Clair
+            </button>
+            <button
+              onClick={() => setTheme('dark')}
+              className={`flex-1 py-2 rounded-xl text-sm font-medium transition ${
+                theme === 'dark' ? 'bg-koko-orange text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              <Moon size={16} className="inline mr-1" /> Sombre
+            </button>
+            <button
+              onClick={() => setTheme('system')}
+              className={`flex-1 py-2 rounded-xl text-sm font-medium transition ${
+                theme === 'system' ? 'bg-koko-orange text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              <Monitor size={16} className="inline mr-1" /> Système
             </button>
           </div>
         </div>
