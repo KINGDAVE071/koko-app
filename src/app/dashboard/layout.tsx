@@ -44,33 +44,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <PageTransition>{children}</PageTransition>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-koko-dark-surface border-t border-gray-200 dark:border-gray-700 px-6 py-3 flex justify-between items-center z-50 overflow-x-auto shadow-nav">
-        <Link href="/dashboard" className={`flex flex-col items-center transition-colors duration-200 ${isActive('/dashboard') && !isActive('/dashboard/converter') && !isActive('/dashboard/receipts') && !isActive('/dashboard/business') && !isActive('/dashboard/profile') && !isActive('/dashboard/admin') ? 'text-koko-orange' : 'text-gray-400 dark:text-gray-500 hover:text-koko-orange'}`}>
-          <Pill className="w-5 h-5" />
-          <span className="text-xs">{t('nav.health')}</span>
-        </Link>
-        <Link href="/dashboard/converter" className={`flex flex-col items-center transition-colors duration-200 ${isActive('/dashboard/converter') ? 'text-koko-orange' : 'text-gray-400 dark:text-gray-500 hover:text-koko-orange'}`}>
-          <ArrowLeftRight className="w-5 h-5" />
-          <span className="text-xs">{t('nav.convert')}</span>
-        </Link>
-        <Link href="/dashboard/receipts" className={`flex flex-col items-center transition-colors duration-200 ${isActive('/dashboard/receipts') ? 'text-koko-orange' : 'text-gray-400 dark:text-gray-500 hover:text-koko-orange'}`}>
-          <FileText className="w-5 h-5" />
-          <span className="text-xs">{t('nav.receipts')}</span>
-        </Link>
-        <Link href="/dashboard/business" className={`flex flex-col items-center transition-colors duration-200 ${isActive('/dashboard/business') ? 'text-koko-orange' : 'text-gray-400 dark:text-gray-500 hover:text-koko-orange'}`}>
-          <Briefcase className="w-5 h-5" />
-          <span className="text-xs">{t('nav.business')}</span>
-        </Link>
-        {user.role === 'admin' && (
-          <Link href="/dashboard/admin" className={`flex flex-col items-center transition-colors duration-200 ${isActive('/dashboard/admin') ? 'text-koko-orange' : 'text-gray-400 dark:text-gray-500 hover:text-koko-orange'}`}>
-            <Shield className="w-5 h-5" />
-            <span className="text-xs">Admin</span>
-          </Link>
-        )}
-        <Link href="/dashboard/profile" className={`flex flex-col items-center transition-colors duration-200 ${isActive('/dashboard/profile') ? 'text-koko-orange' : 'text-gray-400 dark:text-gray-500 hover:text-koko-orange'}`}>
-          <User className="w-5 h-5" />
-          <span className="text-xs">{t('nav.profile')}</span>
-        </Link>
+      {/* Barre de navigation glassmorphism */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/70 dark:bg-gray-900/70 backdrop-blur-lg border-t border-koko-orange/20 shadow-[0_-4px_20px_rgba(230,126,34,0.05)]">
+        <div className="flex items-center justify-around px-4 py-2 max-w-lg mx-auto">
+          {[
+            { href: '/dashboard', icon: Pill, labelKey: 'nav.health' },
+            { href: '/dashboard/converter', icon: ArrowLeftRight, labelKey: 'nav.convert' },
+            { href: '/dashboard/receipts', icon: FileText, labelKey: 'nav.receipts' },
+            { href: '/dashboard/business', icon: Briefcase, labelKey: 'nav.business' },
+            { href: '/dashboard/admin', icon: Shield, labelKey: 'nav.admin', adminOnly: true },
+            { href: '/dashboard/profile', icon: User, labelKey: 'nav.profile' },
+          ].map(({ href, icon: Icon, labelKey, adminOnly }) => {
+            if (adminOnly && user?.role !== 'admin') return null;
+            const active = isActive(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`relative flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 min-w-[44px] rounded-xl transition-all duration-200 ${
+                  active
+                    ? 'text-koko-orange'
+                    : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                }`}
+              >
+                {/* Fond actif discret */}
+                {active && (
+                  <span className="absolute inset-0 rounded-xl bg-koko-orange/5 dark:bg-koko-orange/10" />
+                )}
+                <Icon size={22} strokeWidth={active ? 2.5 : 1.8} className="relative z-10" />
+                <span className="text-[10px] font-medium relative z-10">{t(labelKey)}</span>
+                {active && (
+                  <span className="absolute -bottom-0.5 w-1 h-1 rounded-full bg-koko-orange" />
+                )}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
     </div>
   );
