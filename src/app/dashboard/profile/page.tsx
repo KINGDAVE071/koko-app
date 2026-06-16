@@ -13,10 +13,23 @@ export default function ProfilePage() {
   const [logo, setLogo] = useState<string | null>(user?.logo || null);
   const [loadingLogo, setLoadingLogo] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
+  const [legalTexts, setLegalTexts] = useState({
+    privacy_policy: '',
+    terms_of_service: '',
+    contact_email: 'alimossidavid071@gmail.com',
+  });
 
   useEffect(() => {
     const isDark = document.documentElement.classList.contains('dark');
     setDarkMode(isDark);
+    // Charger les textes légaux dynamiques
+    api.get('/public/settings')
+      .then(res => {
+        if (res.data.privacy_policy) setLegalTexts(prev => ({ ...prev, privacy_policy: res.data.privacy_policy }));
+        if (res.data.terms_of_service) setLegalTexts(prev => ({ ...prev, terms_of_service: res.data.terms_of_service }));
+        if (res.data.contact_email) setLegalTexts(prev => ({ ...prev, contact_email: res.data.contact_email }));
+      })
+      .catch(() => {}); // garde les textes par défaut si l'API échoue
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -152,36 +165,36 @@ export default function ProfilePage() {
         </h3>
         
         <div className="space-y-3 text-sm">
-          <details className="group">
-            <summary className="flex items-center justify-between cursor-pointer text-gray-700 dark:text-gray-300 font-medium">
-              Politique de confidentialité
-              <ChevronDown size={16} className="transition group-open:rotate-180" />
-            </summary>
-            <div className="mt-2 text-gray-600 dark:text-gray-400 leading-relaxed space-y-2">
-              <p><strong>Collecte des données :</strong> KOKO collecte uniquement les informations nécessaires à votre utilisation (email, nom, médicaments, produits, transactions).</p>
-              <p><strong>Utilisation :</strong> Vos données ne sont jamais partagées avec des tiers. Elles sont stockées de manière sécurisée et chiffrée.</p>
-              <p><strong>Cookies :</strong> KOKO utilise des cookies techniques indispensables au fonctionnement de l'application.</p>
-              <p><strong>Droits :</strong> Vous pouvez demander la suppression de votre compte à tout moment en contactant le développeur.</p>
-              <p className="text-xs mt-2">Dernière mise à jour : Juin 2026</p>
-            </div>
-          </details>
+          {legalTexts.privacy_policy && (
+            <details className="group">
+              <summary className="flex items-center justify-between cursor-pointer text-gray-700 dark:text-gray-300 font-medium">
+                Politique de confidentialité
+                <ChevronDown size={16} className="transition group-open:rotate-180" />
+              </summary>
+              <div className="mt-2 text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">
+                {legalTexts.privacy_policy}
+              </div>
+            </details>
+          )}
 
-          <details className="group">
-            <summary className="flex items-center justify-between cursor-pointer text-gray-700 dark:text-gray-300 font-medium">
-              Conditions d'utilisation
-              <ChevronDown size={16} className="transition group-open:rotate-180" />
-            </summary>
-            <div className="mt-2 text-gray-600 dark:text-gray-400 leading-relaxed">
-              <p>En utilisant KOKO, vous acceptez de respecter les lois en vigueur dans votre pays. L'application est fournie "en l'état", sans garantie. Le développeur ne peut être tenu responsable des éventuelles pertes de données ou dommages liés à l'utilisation de l'application.</p>
-            </div>
-          </details>
+          {legalTexts.terms_of_service && (
+            <details className="group">
+              <summary className="flex items-center justify-between cursor-pointer text-gray-700 dark:text-gray-300 font-medium">
+                Conditions d'utilisation
+                <ChevronDown size={16} className="transition group-open:rotate-180" />
+              </summary>
+              <div className="mt-2 text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">
+                {legalTexts.terms_of_service}
+              </div>
+            </details>
+          )}
 
           <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
             <h4 className="text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2">
               <Mail size={16} /> Contact développeur
             </h4>
             <p className="text-gray-500 dark:text-gray-400 mt-1">
-              <a href="mailto:alimossidavid071@gmail.com" className="text-koko-orange hover:underline">alimossidavid071@gmail.com</a>
+              <a href={`mailto:${legalTexts.contact_email}`} className="text-koko-orange hover:underline">{legalTexts.contact_email}</a>
             </p>
           </div>
         </div>
