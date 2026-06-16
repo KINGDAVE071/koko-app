@@ -18,14 +18,22 @@ interface Receipt {
   created_at: string;
 }
 
+interface SaleItem {
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  cost_price?: number;
+}
+
 interface Props {
   receipt: Receipt;
+  items?: SaleItem[];
   onDelete?: (id: number) => void;
   isSelected?: boolean;
   onSelect?: (id: number) => void;
 }
 
-export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: Props) {
+export default function ReceiptV2({ receipt, items, onDelete, isSelected, onSelect }: Props) {
   const { user } = useAuth();
   const [showPreview, setShowPreview] = useState(false);
   const logoSrc = user?.logo || null;
@@ -35,7 +43,7 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
     if (!content) return;
     const printWindow = window.open('', '_blank', 'width=400,height=600');
     if (printWindow) {
-      printWindow.document.write(`<html><head><title>Reçu ${receipt.hash}</title><style>body{font-family:monospace;font-size:12px;display:flex;justify-content:center;margin:0;padding:16px;background:white;color:black;}</style></head><body>${content.outerHTML}</body></html>`);
+      printWindow.document.write(`<html><head><title>Reçu ${receipt.hash}</title><style>body{font-family:monospace;font-size:12px;display:flex;justify-content:center;margin:0;padding:16px;background:white;color:black;}table{width:100%;border-collapse:collapse;}td,th{border-bottom:1px dashed #ccc;padding:4px 0;text-align:left;}.total{font-weight:bold;}</style></head><body>${content.outerHTML}</body></html>`);
       printWindow.document.close();
       printWindow.print();
     }
@@ -47,6 +55,9 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
       catch (err) { alert('Erreur lors de la suppression.'); }
     }
   };
+
+  // Calcul TTC si items
+  const totalTTC = items ? items.reduce((sum, it) => sum + it.unit_price * it.quantity, 0) : receipt.amount;
 
   return (
     <>
@@ -60,17 +71,43 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
               <img src={logoSrc} alt="Logo" className="max-h-8 max-w-full object-contain" />
             </div>
           )}
-          <p className="font-bold text-sm">KOKO - Reçu</p>
-          <p className="text-gray-500 dark:text-gray-400">{new Date(receipt.created_at).toLocaleString()}</p>
+          <p className="font-bold text-sm">KOKO – Reçu</p>
+          <p className="text-gray-500 dark:text-gray-400 text-[10px]">{new Date(receipt.created_at).toLocaleString()}</p>
           <hr className="my-1 border-dashed border-gray-300 dark:border-gray-600" />
-          <p className="font-semibold">{receipt.type.toUpperCase()}</p>
-          <p>{receipt.from_name} → {receipt.to_name}</p>
-          <p className="text-lg font-bold my-1 text-koko-orange">{receipt.amount} {receipt.currency}</p>
-          {receipt.description && <p className="text-gray-500 dark:text-gray-400">{receipt.description}</p>}
-          {receipt.location && <p className="text-gray-500 dark:text-gray-400">{receipt.location}</p>}
+          {items && items.length > 0 ? (
+            <table className="w-full text-left text-[10px] mt-1">
+              <thead>
+                <tr className="text-gray-500 dark:text-gray-400">
+                  <th>Article</th><th className="text-right">Qté</th><th className="text-right">Prix</th><th className="text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((it, idx) => (
+                  <tr key={idx}>
+                    <td>{it.product_name}</td>
+                    <td className="text-right">{it.quantity}</td>
+                    <td className="text-right">{it.unit_price.toLocaleString()}</td>
+                    <td className="text-right">{(it.unit_price * it.quantity).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="font-bold">
+                  <td colSpan={3} className="text-right">Total TTC</td>
+                  <td className="text-right text-koko-orange">{totalTTC.toLocaleString()} FCFA</td>
+                </tr>
+              </tfoot>
+            </table>
+          ) : (
+            <>
+              <p className="font-semibold">{receipt.type.toUpperCase()}</p>
+              <p>{receipt.from_name} → {receipt.to_name}</p>
+              <p className="text-lg font-bold my-1 text-koko-orange">{receipt.amount} {receipt.currency}</p>
+            </>
+          )}
+          {receipt.description && <p className="text-gray-500 dark:text-gray-400 mt-1 text-[10px]">{receipt.description}</p>}
           <hr className="my-1 border-dashed border-gray-300 dark:border-gray-600" />
           <p className="text-gray-400 dark:text-gray-500 text-[10px]">#{receipt.hash}</p>
-          <p className="text-gray-400 dark:text-gray-500 text-[10px]">ID: {receipt.id}</p>
         </div>
         <div className="flex gap-1 mt-2">
           <button onClick={() => setShowPreview(true)} className="flex-1 py-1.5 rounded-lg bg-koko-orange hover:bg-koko-orange-dark text-white text-xs flex items-center justify-center gap-1 transition">
@@ -94,17 +131,43 @@ export default function ReceiptV2({ receipt, onDelete, isSelected, onSelect }: P
               </div>
             )}
             <div className="text-center">
-              <p className="font-bold text-sm">KOKO - Reçu</p>
-              <p className="text-gray-500 dark:text-gray-400">{new Date(receipt.created_at).toLocaleString()}</p>
+              <p className="font-bold text-sm">KOKO – Reçu</p>
+              <p className="text-gray-500 dark:text-gray-400 text-[10px]">{new Date(receipt.created_at).toLocaleString()}</p>
               <hr className="my-1 border-dashed border-gray-300 dark:border-gray-600" />
-              <p className="font-semibold">{receipt.type.toUpperCase()}</p>
-              <p>{receipt.from_name} → {receipt.to_name}</p>
-              <p className="text-lg font-bold my-1 text-koko-orange">{receipt.amount} {receipt.currency}</p>
-              {receipt.description && <p className="text-gray-500 dark:text-gray-400">{receipt.description}</p>}
-              {receipt.location && <p className="text-gray-500 dark:text-gray-400">{receipt.location}</p>}
+              {items && items.length > 0 ? (
+                <table className="w-full text-left text-[10px] mt-1">
+                  <thead>
+                    <tr className="text-gray-500 dark:text-gray-400">
+                      <th>Article</th><th className="text-right">Qté</th><th className="text-right">Prix</th><th className="text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((it, idx) => (
+                      <tr key={idx}>
+                        <td>{it.product_name}</td>
+                        <td className="text-right">{it.quantity}</td>
+                        <td className="text-right">{it.unit_price.toLocaleString()}</td>
+                        <td className="text-right">{(it.unit_price * it.quantity).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="font-bold">
+                      <td colSpan={3} className="text-right">Total TTC</td>
+                      <td className="text-right text-koko-orange">{totalTTC.toLocaleString()} FCFA</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              ) : (
+                <>
+                  <p className="font-semibold">{receipt.type.toUpperCase()}</p>
+                  <p>{receipt.from_name} → {receipt.to_name}</p>
+                  <p className="text-lg font-bold my-1 text-koko-orange">{receipt.amount} {receipt.currency}</p>
+                </>
+              )}
+              {receipt.description && <p className="text-gray-500 dark:text-gray-400 mt-1 text-[10px]">{receipt.description}</p>}
               <hr className="my-1 border-dashed border-gray-300 dark:border-gray-600" />
               <p className="text-gray-400 dark:text-gray-500 text-[10px]">#{receipt.hash}</p>
-              <p className="text-gray-400 dark:text-gray-500 text-[10px]">ID: {receipt.id}</p>
             </div>
             <button onClick={() => setShowPreview(false)} className="w-full mt-3 py-1.5 rounded-lg bg-koko-orange hover:bg-koko-orange-dark text-white text-xs transition">Fermer</button>
           </div>
