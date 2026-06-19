@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { toast } from 'sonner';
-import { Eye, EyeOff, User, Mail, Lock, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Lock, CheckCircle2, Check, X } from 'lucide-react';
 import KokoLogo from '@/components/KokoLogo';
 
 function RegisterForm() {
@@ -21,6 +21,15 @@ function RegisterForm() {
   const searchParams = useSearchParams();
   const { t, lang } = useLanguage();
 
+  // Critères du mot de passe
+  const criteria = {
+    minLength: password.length >= 8,
+    hasUpper: /[A-Z]/.test(password),
+    hasLower: /[a-z]/.test(password),
+    hasDigit: /[0-9]/.test(password),
+    hasSymbol: /[@$!%*?&]/.test(password),
+  };
+
   useEffect(() => {
     const emailParam = searchParams.get('email');
     if (emailParam) setEmail(emailParam);
@@ -31,6 +40,10 @@ function RegisterForm() {
     if (!name.trim()) { setError(t('register.name') + ' est requis.'); return; }
     if (!email.trim()) { setError(t('register.email') + ' est requis.'); return; }
     if (!password) { setError((t('register.password') || 'Mot de passe') + ' est requis.'); return; }
+    if (!criteria.minLength || !criteria.hasUpper || !criteria.hasLower || !criteria.hasDigit || !criteria.hasSymbol) {
+      setError('Le mot de passe ne respecte pas tous les critères requis.');
+      return;
+    }
     try {
       await register(email, password, name);
       setSuccess(true);
@@ -68,44 +81,51 @@ function RegisterForm() {
         <div className="space-y-4">
           <div className="relative">
             <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
-            <input
-              type="text"
-              placeholder={t('register.name')}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:border-koko-orange focus:ring-2 focus:ring-koko-orange/20 transition"
-            />
+            <input type="text" placeholder={t('register.name')} value={name} onChange={(e) => setName(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:border-koko-orange focus:ring-2 focus:ring-koko-orange/20 transition" />
           </div>
 
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
-            <input
-              type="email"
-              placeholder={t('register.email')}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:border-koko-orange focus:ring-2 focus:ring-koko-orange/20 transition"
-            />
+            <input type="email" placeholder={t('register.email')} value={email} onChange={(e) => setEmail(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:border-koko-orange focus:ring-2 focus:ring-koko-orange/20 transition" />
           </div>
 
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
-            <input
-              type={showPassword ? 'text' : 'password'}
-              placeholder={t('register.password') || 'Mot de passe'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-12 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:border-koko-orange focus:ring-2 focus:ring-koko-orange/20 transition"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              tabIndex={-1}
-            >
+            <input type={showPassword ? 'text' : 'password'} placeholder={t('register.password') || 'Mot de passe'} value={password} onChange={(e) => setPassword(e.target.value)}
+              className="w-full pl-10 pr-12 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:border-koko-orange focus:ring-2 focus:ring-koko-orange/20 transition" />
+            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" tabIndex={-1}>
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
           </div>
+
+          {/* Indicateurs de critères du mot de passe */}
+          {password.length > 0 && (
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-3 space-y-1.5 text-xs">
+              <p className="text-gray-700 dark:text-gray-300 font-medium mb-1">Le mot de passe doit contenir :</p>
+              <div className="flex items-center gap-2">
+                {criteria.minLength ? <Check size={14} className="text-green-500" /> : <X size={14} className="text-red-500" />}
+                <span className={criteria.minLength ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>Au moins 8 caractères</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {criteria.hasUpper ? <Check size={14} className="text-green-500" /> : <X size={14} className="text-red-500" />}
+                <span className={criteria.hasUpper ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>Une majuscule</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {criteria.hasLower ? <Check size={14} className="text-green-500" /> : <X size={14} className="text-red-500" />}
+                <span className={criteria.hasLower ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>Une minuscule</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {criteria.hasDigit ? <Check size={14} className="text-green-500" /> : <X size={14} className="text-red-500" />}
+                <span className={criteria.hasDigit ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>Un chiffre</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {criteria.hasSymbol ? <Check size={14} className="text-green-500" /> : <X size={14} className="text-red-500" />}
+                <span className={criteria.hasSymbol ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>Un symbole (@$!%*?&)</span>
+              </div>
+            </div>
+          )}
 
           <button onClick={handleClick} className="w-full py-3 rounded-xl bg-koko-orange hover:bg-koko-orange-dark text-white font-bold transition-colors shadow-lg hover:shadow-koko-orange/30">
             {t('register.submit')}
@@ -113,9 +133,7 @@ function RegisterForm() {
 
           <p className="text-center text-sm text-gray-500 dark:text-gray-400">
             {t('register.hasAccount')}{' '}
-            <Link href="/login" className="text-koko-orange font-semibold hover:underline">
-              {t('register.loginLink')}
-            </Link>
+            <Link href="/login" className="text-koko-orange font-semibold hover:underline">{t('register.loginLink')}</Link>
           </p>
         </div>
       </div>
@@ -125,11 +143,7 @@ function RegisterForm() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-[#0F172A] dark:to-[#0F172A] text-gray-800 dark:text-white">
-        Chargement...
-      </div>
-    }>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-[#0F172A] dark:to-[#0F172A] text-gray-800 dark:text-white">Chargement...</div>}>
       <RegisterForm />
     </Suspense>
   );
